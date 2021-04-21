@@ -1,0 +1,73 @@
+scheme GroupingBasics =
+class
+  type 
+    Person = Text,
+    Relation = (Person >< Person)-set,
+    Group = Person-set,
+    Grouping = Group-set
+    
+    value
+
+    /* Assumptions: */
+    /* 1. (p1,p2) = (p2,p1), in other words the ordering */
+    /*    in people pairs does not matter; */
+    /* 2. the relation can be empty (see below).*/
+
+    /* Note: having an empty relation makes sense when it comes to divide.*/
+    /* In that case divide function won't simply divide the person-set, see*/
+    /* test [divideEmptyRelation]. */
+    isFriendsRelation : Relation -> Bool
+    isFriendsRelation(r) is (r = {} \/
+      (all (p1, p2) : Person >< Person :- (p1,p2) isin r => p1 ~= p2) /\
+      ~(exists (p1, p2) : Person >< Person :-
+               (p1, p2) isin r /\ (p2, p1) isin r /\ (p1, p2) ~= (p2, p1)
+               )
+      ),
+
+    /* Assumptions: (p1,p2) = (p2,p1) */
+    areFriends : Person >< Person >< Relation -> Bool
+    areFriends(p1, p2, r) is (p1, p2) isin r \/ (p2, p1) isin r,
+
+    /* A correct grouping satisfies: */
+    /* 1. Each group must contain only people who are not friends */
+    /* 2. The union of all groups in grouping must equal the input*/
+    /*    person set; */
+    /* 3. Groups in grouping must be disjoint */    
+    isCorrectGrouping : Grouping >< Person-set >< Relation -> Bool
+    isCorrectGrouping(gs,ps,r) is
+          (all g : Group :- g isin gs => noFriendsInGroup(g, r)) /\
+               isGroupsUnionEqualSet(gs, ps) /\
+               areGroupsDisjoint(gs)
+    pre isFriendsRelation(r),    
+
+-------------------- Auxiliary functions ---------------------------
+
+    /* Return true iff there are no friends in the input group */
+    noFriendsInGroup : Group >< Relation -> Bool
+    noFriendsInGroup(g, r) is
+        (all p1 : Person :- p1 isin g =>
+                  (all p2 : Person :- p2 isin g\{p1} =>
+                       ~areFriends(p1,p2,r)
+        )),
+
+    /* Generalized union of groups in grouping = input person set */
+    isGroupsUnionEqualSet: Grouping >< Person-set -> Bool
+    isGroupsUnionEqualSet(gs, ps) is
+            (card {p | p : Person :- p isin ps /\
+            isPersonInGrouping(p,gs)} = card ps),
+
+    /* True iif a person in a set of Person-set */
+    isPersonInGrouping: Person >< Grouping -> Bool
+    isPersonInGrouping(p, gs) is
+            (exists g : Group :- g isin gs /\ p isin g),
+
+    /* Generalized intersection of groups in grouping = {} */
+    areGroupsDisjoint : Grouping -> Bool
+    areGroupsDisjoint(gs) is
+          (all g1 : Group :- g1 isin gs =>
+             (all g2 : Group :- g2 isin gs\{g1} =>
+                  (g1 inter g2 = {})
+             ))
+-----------------------------------------------------------------
+
+end

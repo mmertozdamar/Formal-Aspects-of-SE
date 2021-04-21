@@ -1,0 +1,64 @@
+GroupingBasics
+
+scheme GroupingEx =
+extend GroupingBasics with 
+class
+value
+   /* Divides a person set in a grouping according to a relation and our */
+   /* definition of a grouping. See BasicGrouping.rsl for more info on */
+   /* groupings.*/
+   divide : Person-set >< Relation -~-> Grouping
+   divide(ps, r) is
+              genGroups(genSingletons(ps), {}, r)
+   pre isFriendsRelation(r),
+
+-------------------- Auxiliary functions ---------------------------
+
+   /* Given a person set generates a set of groups whose cardinality is */
+   /* one. */
+   genSingletons : Person-set -> Grouping
+   genSingletons(ps) is
+              {{p} | p : Person :- p isin ps},
+
+   /* The way genGroups works is deterministic but unpredictable */
+   /* As the hd function over sets picks arbitrary values from the set. */
+   genGroups : Grouping >< Grouping >< Relation -> Grouping
+   genGroups(gs, gs_rst, r) is
+             if (card gs = 0) then
+                gs_rst
+             else
+                let (g1,g2) = getMergeableGroups((gs\{hd gs}), hd gs, r)
+                    in
+                      if(g2 ~= {} \/ g1 ~= {}) then
+                          genGroups( (gs\{g1,g2}) union {g1 union g2},
+                                   (gs_rst\{g1,g2}) union {g1 union g2}, r)
+                      else
+                          genGroups( gs\{hd(gs)}, gs_rst union {hd(gs)}, r)
+                      end
+                    end
+             end,
+             
+   /* Given a group, it attempts a possible group which has no common */
+   /* friends and is in the input grouping. */
+   /* If it succeeds it returns a product containing the match, */
+   /* otherwise ({},{}) */
+   getMergeableGroups : Grouping >< Group >< Relation -> Group >< Group
+   getMergeableGroups(gs, g, r) is
+            if (card gs > 0) then
+                 if(thereAreNotFriends(hd(gs), g, r)) then
+                      (hd(gs), g)
+                 else
+                      getMergeableGroups(gs\{hd(gs),g}, g, r)
+                 end
+            else
+              ({},{})
+            end,
+
+   /* True iff the input groups do not contain people who are friends */
+   thereAreNotFriends: Group >< Group >< Relation -> Bool
+   thereAreNotFriends(g1,g2,r) is
+             (all p1 : Person :- p1 isin g1 =>
+                    (all p2 : Person :- p2 isin g2 =>
+                             ~areFriends(p1,p2,r)
+             ))
+end

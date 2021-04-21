@@ -1,0 +1,168 @@
+open testTIMETABLE
+val it = () : unit
+val it = () : unit
+val it = () : unit
+val it = () : unit
+[emptyTable] true
+val it = () : unit
+[addTram] true
+val it = () : unit
+[addStop] true
+val it = () : unit
+[checkIsIn] true
+val it = () : unit
+[checkNotIsIn] true
+val it = () : unit
+[isContStopIdEqualOK] true
+val it = () : unit
+[isContStopIdEqualFail] true
+val it = () : unit
+[combinePLS] <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60),("A",0,7),("B",19,29),
+             ("C",45,46),("B",60,62),("A",70,80),("D",0,2),("B",11,13),("A",28,32),("B",47,50),
+             ("D",58,60),("A",1,5),("B",15,17),("C",30,34),("B",46,49),("A",56,63).>
+val it = () : unit
+[filterByStopIdFound] true
+val it = () : unit
+[filterByStopIdNotFound] true
+val it = () : unit
+[findMinATEnd] true
+val it = () : unit
+[findMinATSingle] true
+val it = () : unit
+[findMaxDTEnd] true
+val it = () : unit
+[findMaxDTSingle] true
+val it = () : unit
+[sOverlapsInTimeUnitNotOverlapping] true
+val it = () : unit
+[sOverlapsInTimeUnitOverlappingEqual] true
+val it = () : unit
+[sOverlapsInTimeUnitOverlappingNone] true
+val it = () : unit
+[inEqTimeRangeEqualBounds] true
+val it = () : unit
+[inEqTimeRangeTrue] true
+val it = () : unit
+[inEqTimeRangeFalse] true
+val it = () : unit
+[genTimeSetInRangeOneElem] true
+val it = () : unit
+[genTimeSetInRangeMoreElems] true
+val it = () : unit
+[isStopCongestedFail] true
+val it = () : unit
+[isStopCongestedOK] true
+val it = () : unit
+[isStopCongestedBound] true
+val it = () : unit
+[buildDelimitedPLS] <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60),("###",0,0),
+                    ("A",0,7),("B",19,29),("C",45,46),("B",60,62),("A",70,80),("###",0,0),
+                    ("D",0,2),("B",11,13),("A",28,32),("B",47,50),("D",58,60),("###",0,0),
+                    ("A",1,5),("B",15,17),("C",30,34),("B",46,49),("A",56,63).>
+val it = () : unit
+[combineDelimitedPLS] <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60),
+("###",0,0),("A",0,7),("B",19,29),("C",45,46),("B",60,62),("A",70,80),("###",0,0),
+("D",0,2),("B",11,13),("A",28,32),("B",47,50),("D",58,60),("###",0,0),("A",1,5),
+("B",15,17),("C",30,34),("B",46,49),("A",56,63).>
+val it = () : unit
+[filterByStopIdPairOneFound] true
+val it = () : unit
+[filterByStopIdPairMultiFound] true
+val it = () : unit
+[filterByStopIdPairNotFound] true
+val it = () : unit
+[findPlanPairMinDTNone] true
+val it = () : unit
+[findPlanPairMinDTOnePair] true
+val it = () : unit
+[findPlanPairMinDTMultiPairs] true
+val it = () : unit
+[findPlanPairMaxATNone] true
+val it = () : unit
+[findPlanPairMaxATOnePair] true
+val it = () : unit
+[findPlanPairMaxATMultiPairs] true
+val it = () : unit
+[connectionOverlapsInTimeUnitNone] true
+val it = () : unit
+[connectionOverlapsInTimeUnitOnePair] true
+val it = () : unit
+[connectionOverlapsInTimeUnitUpperLimit] true
+val it = () : unit
+[connectionOverlapsInTimeUnitLowerLimit] true
+val it = () : unit
+[isConnectionCongestedTrue] true
+val it = () : unit
+[isConnectionCongestedFalse] true
+val it = () : unit
+[isPlansChronologicalOrderOK] true
+val it = () : unit
+[isPlansChronologicalOrderFail] true
+val it = () : unit
+[areStopsInPlanListDirectlyConnectedOK] true
+val it = () : unit
+[areStopsInPlanListDirectlyConnectedFail] true
+val it = () : unit
+[noContStopIdEqualOK] true
+val it = () : unit
+[noContStopIdEqualFail] true
+val it = () : unit
+[areStopsCapEverExceededTrue] true
+val it = () : unit
+[areStopsCapEverExceededFalse] true
+val it = () : unit
+[isAnyConCapEverExceededFalse] true
+val it = () : unit
+[isAnyConCapEverExceededBackwardTrue] true
+val it = () : unit
+[isAnyConCapEverExceededForwardTrue] true
+val it = () : unit
+[checkIsValidArrivalTimeOK] true
+val it = () : unit
+[checkIsValidArrivalTimeFail] true
+val it = () : unit
+[checkIsValidDepartureTimeOK] true
+val it = () : unit
+[checkIsValidDepartureTimeFail] true
+val it = () : unit
+[checkIsValidTramOK] true
+val it = () : unit
+[checkIsValidTramFail] true
+val it = () : unit
+[allStopsInTimeTableOK] true
+val it = () : unit
+[allStopsInTimeTableFail] true
+val it = () : unit
+[checkMinDTOK] true
+val it = () : unit
+[checkMinDTFail] true
+val it = () : unit
+[checkAreTimeTablesCollidingOK] true
+val it = () : unit
+[checkAreTimeTablesCollidingFail] true
+val it = () : unit
+[isTimeTablesChronologicalOrderOK] true
+val it = () : unit
+[isTimeTablesChronologicalOrderFail] true
+val it = () : unit
+[areStopsInTimeTableDirectlyConnectedOK] true
+val it = () : unit
+[areStopsInTimeTableDirectlyConnectedFail] true
+val it = () : unit
+[isHWInConCompliedOK] true
+val it = () : unit
+[isHWInConCompliedFail] true
+val it = () : unit
+[isAllConHWCompliedOK] true
+val it = () : unit
+[isAllConHWCompliedFail] true
+val it = () : unit
+[isWellformedOKBasic] true
+val it = () : unit
+val it = () : unit
+Unexecuted expressions in NET.rsl
+Unexecuted expressions in TIMETABLE.rsl
+val it = () : unit
+val it = () : unit
+val it = () : unit
+- 

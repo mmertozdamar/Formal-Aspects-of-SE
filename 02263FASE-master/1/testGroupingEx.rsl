@@ -1,0 +1,138 @@
+GroupingEx
+
+scheme testGroupingEx =
+extend GroupingEx with 
+class
+  value
+  
+   -- "exampleType" are the same as in the assignment description
+   exampleRelation : Relation = {
+   ("Anna", "Henrik"),
+   ("Anna", "Frederik"),
+   ("Henrik", "Frederik"),
+   ("Anna", "Mette"),
+   ("Hans", "Mette"),
+   ("Hans", "Joachim"),
+   ("Mette", "Joachim")},
+
+   exampleGrouping : Grouping = {
+      {"Hans", "Henrik"},
+      {"Mette", "Frederik"},
+      {"Joachim", "Peter", "Anna"}},
+
+   exampleGroupingFail : Grouping = {
+                       {"Hans", "Henrik", "Anna"},
+                       {"Mette", "Frederik"},
+                       {"Joachim", "Peter"}},
+   
+   exampleSet : Person-set = { "Anna",
+              "Henrik",
+              "Frederik",
+              "Mette",
+              "Hans",
+              "Joachim",
+              "Peter"}
+
+ test_case
+---------------Main functions of GroupingBasics.rsl-----------------------
+   
+   [isFriendsRelationEmpty] isFriendsRelation({}) = true,
+   /* relation with only one pair */
+   [isFriendsRelationEmptyLonely] isFriendsRelation(
+                                  {("Alice","Alice")}) = false,
+   /* 2 pairs indicating the same friendship */
+   [isFriendsRelationSwapped] isFriendsRelation(
+                                {("A","B"),("B","A")}) = false,
+   /* many pairs part of a valid relation */
+   [isFriendsRelationExample] isFriendsRelation(exampleRelation) = true,
+
+   [areFriendsOK] areFriends("Anna","Mette",exampleRelation) = true,
+   [areFriendsFail] areFriends(
+                     "Anna","notAPerson",exampleRelation) = false,
+   [areFriendsWithThemselves] areFriends("Anna","Anna",{}) = false,
+
+
+   /* Testing whether the example given in the assignment specs holds */ 
+   [isCorrectGroupingOK] isCorrectGrouping(exampleGrouping,
+                                           exampleSet,
+                                           exampleRelation) = true,
+   /* Testing whether the example given in the assignment specs does */
+   /* not hold */
+   [isCorrectGroupingFail] isCorrectGrouping(exampleGroupingFail,
+                                              exampleSet,
+                                              exampleRelation) = false,
+
+----------------Auxiliary function of GroupingBasics.rsl------------------
+
+   [noFriendsInGroupFail] noFriendsInGroup(
+                      {"A", "B", "C"}, {("A","B")}) = false,
+   [noFriendsInGroupOK] noFriendsInGroup(
+                      {"A", "B", "C"}, {}) = true,
+
+   [isGroupsUnionEqualSetOK] isGroupsUnionEqualSet(
+                             {{"Alice", "Charlie"},{"Bob"},{"Derek"}},
+                             {"Alice","Bob", "Charlie", "Derek"}) = true,
+   [isGroupsUnionEqualSetFail] isGroupsUnionEqualSet(
+                            {{"Alice"},{"Bob"}}, {"Charlie","Bob"}) = false,
+
+   [isPersonInGroupingOK] isPersonInGrouping(
+                          "Bob", {{"Alice"},{"Bob"}}) = true,
+   [isPersonInGroupingFail] isPersonInGrouping(
+                            "NotExists", {{"Alice"},{"Bob"}}) = false,
+
+   [areGroupsDisjointOK] areGroupsDisjoint({{"Alice"},{"Bob"}}) = true,
+   [areGroupsDisjointFail] areGroupsDisjoint(
+                          {{"Eve", "Alice", "Bob"},{"Bob", "Eve"}}) = false,
+
+---------------Main functions of GroupingEx.rsl-----------------------
+   /* The input person set should be merged into one group (in the grouping) */
+   [divideEmptyRelation] divide({"A","B","C","D"}, {}) =
+                                                 {{"C","A","D","B"}},
+   /* Testing that divide computes a valid grouping giving small */
+   /* relation */
+   [divideBasic] divide(
+                {"A","B","C","D"}, {("A","B"),("A","D")}) =
+                                   {{"A"},{"D","C","B"}},
+     
+   /* Testing that divide computes a valid grouping giving the example */
+   /* relation */                                              
+   [divideExample] divide(exampleSet, exampleRelation),
+
+----------------Auxiliary function of GroupingEx.rsl------------------
+
+   [genSingletons] genSingletons({"A","B","C","D"}) =
+                              {{"A"},{"B"},{"C"},{"D"}},
+                              
+   /* In the following tests, we print out the result of genGroups. */
+   /* As it is hard to predict the values returned by genGroups (due to hd*/
+   /* indeterminism) we do not include expected values for testing genGroups. */
+   /* However, it is easy to verify that the generated groups satisfy */
+   /* our grouping definition. */
+   [genGroups] genGroups({{"A"},{"C"},{"B"}}, {}, {("A","B")}),
+   [genGroupsFromSingletons] genGroups(
+      {{"A"},{"C"},{"B"},{"D"},{"E"},{"F"}},{},
+      {("A","B"), ("C","E"), ("F","C"), ("E","A")}),
+   [genGroupsHard] genGroups({{"A"},{"L","C","Q","M"},{"B","F"},{"D"}},
+                   {}, {("A","B"), ("B","M"),("D","F")}),
+
+   /* case group is mergeable based on our grouping definition */
+   [getMergeableGroupsBasic] getMergeableGroups(
+                   {{"A"},{"C"},{"B"}}, {"A"}, {("A","B")}) = ({"C"},{"A"}),
+                   
+   /* Case group is not mergeable based on our grouping definition */
+   [getMergeableUnmergeable] getMergeableGroups(
+                   {{"A"},{"B"}}, {"A"}, {("A","B")}) = ({},{}),
+
+   /* Difficult grouping to merge */
+   [getMergeableDifficult] getMergeableGroups(
+                   {{"G","X"},{"A"},{"C"},{"B"}}, {"A"}, {("A","B"), 
+                    ("G","B"), ("A","C"), ("C","X"), ("B","C")}) =
+                               ({"G","X"},{"A"}),
+
+   /* Case when two groups have no friends in common */
+   [thereAreNotFriendsOK] thereAreNotFriends(
+                          {"A","B"},{"C","D"},{}) = true,
+   /* Case when two groups have friends in common */
+   [thereAreNotFriendsFail] thereAreNotFriends(
+                            {"A","B"},{"C","D"},{("A","C")}) = false
+ end 

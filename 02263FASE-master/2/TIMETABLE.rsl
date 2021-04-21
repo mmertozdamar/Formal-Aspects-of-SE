@@ -1,0 +1,600 @@
+NET	
+scheme TIMETABLE = 
+  extend NET with 
+  class 
+    type 
+      TimeTable = TramId -m-> Plan-list, -- time tables
+      PlanPair = Plan >< Plan,      
+      Plan = StopId >< Time >< Time, -- Plan = stop >< arrivalT >< departureT
+      TimeRange = Time >< Time,
+      TramId = Text -- tram names  
+    	 
+    value /* generators */ 
+    -- the empty timetable 
+      empty : TimeTable = [], 
+      	 
+      -- add to a time table an empty plan for a new
+      -- tram 
+
+      addTram : TramId >< TimeTable -> TimeTable
+      addTram(tId, tT) is (tT !! [tId +> <..>]), 
+      	 
+      -- add a stop with arrival time and departure
+      -- time to the plan for a given tram 
+      addStop : 
+        TramId >< StopId >< Time >< Time >< TimeTable -> 
+          TimeTable
+      addStop(tId, sId, aT, dP, tT) is 
+        (tT !! [tId +> (tT(tId) ^ <.(sId, aT, dP).>)]) 
+    	 
+    value /* observers */ 
+    -- check whether a tram with a given name exists
+    -- in a given time table 
+      isIn : TramId >< TimeTable -> Bool
+      isIn(tId, tT) is (tId isin tT), 
+
+    --################################
+    --# WF preds auxiliary functions #
+    --################################
+
+      isContStopIdEqual : Plan-list >< Plan -> Bool  
+      isContStopIdEqual (pl, (curSId, curAT, curDT)) is
+      if len pl > 0 then
+         let (nextSId, nextAT, nextDT) = hd pl
+         in
+           if curSId = nextSId then
+              false
+           else
+              isContStopIdEqual( tl pl, (nextSId, nextAT, nextDT) )
+           end
+         end
+       else
+          true
+       end,
+
+
+      -- combines a Plan-list-set in plan-list by concatenating
+      -- the plan-list-set while keeping it ordered.
+      combinePLS : (Plan-list)-set >< Plan-list -> Plan-list
+      combinePLS(pls, pl) is
+      if card pls > 0 then
+         let curPl = hd pls
+         in
+            combinePLS(pls \ {curPl}, pl^curPl)
+         end            
+      else
+            pl
+      end,
+
+
+      -- takes a combined plan-list and returns a plan list containing
+      -- only the plans having the input StopId
+      filterByStopId : StopId >< Plan-list >< Plan-list -> Plan-list
+      filterByStopId (sId, cpl, fpl) is
+      if (len cpl > 0) then
+         let (curId, curAT, curDT) = hd cpl
+         in
+            if curId = sId then
+               filterByStopId(sId, tl cpl, fpl ^ <.(curId, curAT, curDT).>)
+            else  
+               filterByStopId(sId, tl cpl, fpl)
+            end
+         end
+      else
+         fpl
+      end,
+
+
+      -- computes the minimum plan arrival time in the input plan
+      -- list
+      -- pre: input tmpMin is a large integer
+      findMinAT : Plan-list >< Time -> Time
+      findMinAT(pl, tmpMin) is
+      if len pl > 0 then
+         let (curSId, curAT, curDT) = hd pl
+         in
+            if curAT < tmpMin then
+               findMinAT(tl pl, curAT)
+            else
+               findMinAT(tl pl, tmpMin)
+            end
+         end
+      else
+         tmpMin
+      end,
+
+      -- computes the maximum plan departure time in the input plan
+      -- list
+      -- pre: input tmpMin is a small integer      
+      findMaxDT : Plan-list >< Int -> Time
+      findMaxDT(pl, tmpMax) is
+      if len pl > 0 then
+         let (curSId, curAT, curDT) = hd pl
+         in
+            if curAT > tmpMax then
+               findMaxDT(tl pl, curDT)
+            else
+               findMaxDT(tl pl, tmpMax)
+            end
+         end
+      else
+         tmpMax
+      end,
+
+
+      -- counts the number of overlapping on a stop at a given time
+      -- pre: plan-list is filtered based on stopId
+      stopOverlapsInTimeUnit : Time >< Plan-list >< Nat -> Nat
+      stopOverlapsInTimeUnit (t0, fpl, counter) is
+      if len fpl > 0 then
+         let (curSId, curAT, curDT) = hd fpl
+         in
+            if  inEqTimeRange(t0, (curAT, curDT)) then
+               stopOverlapsInTimeUnit(t0, tl fpl, counter+1)
+            else
+               stopOverlapsInTimeUnit(t0, tl fpl, counter)
+            end
+         end
+      else
+        counter
+      end,
+
+
+      -- returns a boolean telling whether a time is included 
+      -- in time range (or equal to its bounds)
+      inEqTimeRange : Time >< TimeRange -> Bool
+      inEqTimeRange (t0, (tr0, tr1)) is
+          tr0 <= t0 /\ t0 <= tr1,
+
+
+      -- it generates a set of natural numbers ranged from tr0
+      -- and tr1, included.
+      -- pre:
+      --      * genT = tr0, otherwise empty set is returned
+      --      * tS = {}, otherwise unexpected behaviour
+      timeSetInRange : TimeRange >< Time >< Time-set -> Time-set
+      timeSetInRange ( (tr0, tr1), genT, tS ) is
+          if genT < tr0 then
+             {}
+          else
+             if genT > tr1 then
+                 tS
+             else
+                 timeSetInRange((tr0, tr1), genT + 1, tS union {genT})
+             end
+          end,
+
+      -- returns a boolean telling whether a stop is too busy (congested)
+      -- with respect to its maximum capacity and in the given time range
+      -- pre:
+      --     * plan list filtered by stopId
+      isStopCongested : TimeRange >< Capacity >< Plan-list -> Bool
+      isStopCongested((tr0, tr1), stopCap, pl) is
+       (exists t0 : Time :- t0 isin timeSetInRange((tr0, tr1), tr0, {}) /\
+                stopOverlapsInTimeUnit(t0, pl, 0) > stopCap),
+
+      -- combines a Plan-list-set in a delimited plan-list by concatenating
+      -- each plan list in the set with the next one, and if delim is true
+      -- inserting a delimiter plan ('###', 0, 0) in between.
+      buildDelimitedPLS : (Plan-list)-set >< Bool >< Plan-list -> Plan-list
+      buildDelimitedPLS(pls, isDelim, pl) is
+      if card pls > 0 then
+         if isDelim = false then
+            let curPl = hd pls
+            in
+                buildDelimitedPLS(pls \ {curPl}, true, pl^curPl)
+            end
+         else
+            -- here we delim the pl
+            buildDelimitedPLS(pls, false, pl ^ <.("###", 0, 0).> )
+         end
+      else
+         pl
+      end, 
+
+      -- Interface to build a delimited plan-list set. A delimited PL
+      -- is a combined Plan-list as the one produced by combinePLS, but
+      -- with a delimiter Plan pointing out where plan-list in the input
+      -- set are terminating.
+      combineDelimitedPLS : (Plan-list)-set -> Plan-list
+      combineDelimitedPLS(pls) is
+           buildDelimitedPLS(pls, false, <..>),
+
+
+      -- Extracts from the input plan-list a set of PlanPairs having the
+      -- the stop pair as in searchedSIdP (also the same order).
+      -- pre: cpl is a combined delimited PL
+      filterByStopIdPair : StopIdPair >< Plan-list >< Plan >< PlanPair-set
+                                                      -> PlanPair-set
+                                                      
+      filterByStopIdPair(searchedSIdP, cpl, curP1, pPS) is
+         if len cpl > 1 then
+            let (curSIdP1, aT1, dT1) = curP1,
+                curP2 = hd cpl,
+                (curSIdP2, aT2, dT2) = curP2, 
+                (sId1, sId2) = searchedSIdP
+            in
+              if curSIdP1 = sId1 /\ curSIdP2 = sId2 then
+                 filterByStopIdPair(searchedSIdP, tl cpl, hd cpl,
+                                    pPS union {(curP1, curP2)})
+              else
+                 filterByStopIdPair(searchedSIdP, tl cpl, hd cpl, pPS)
+              end
+            end
+         else
+            pPS
+         end, 
+              
+
+      -- computes the minimum departure time of the first plan for each
+      -- element of the input PlanPair set
+      -- FE: findPlanPairMinDT(<.(("A",AT1,DT1),("B",AT2,DT2)),
+      --                         (("A",AT3,DT3),("B",AT4,DT4)).>) =
+      --            min(DT1, DT3)
+      -- pre: input tmpMin is a large integer
+      findPlanPairMinDT : PlanPair-set >< Time -> Time
+      findPlanPairMinDT(pps, tmpMin) is
+      if card pps > 0 then
+         let (p1, p2) = hd pps,
+             (curSId1, curAT1, curDT1) = p1
+         in
+            if curDT1 < tmpMin then
+               findPlanPairMinDT(pps \ {(p1,p2)}, curDT1)
+            else
+               findPlanPairMinDT(pps \ {(p1,p2)}, tmpMin)
+            end
+         end
+      else
+         tmpMin
+      end,
+
+
+      -- computes the maximum arrival time of the second plan for each
+      -- element of the input PlanPair set
+      -- FE: findPlanPairMaxAT(<.(("A",AT1,DT1),("B",AT2,DT2)),
+      --                         (("A",AT3,DT3),("B",AT4,DT4)).>) =
+      --            max(AT2, AT4)
+      -- pre: input tmpMax is a small natural
+      findPlanPairMaxAT : PlanPair-set >< Time -> Time
+      findPlanPairMaxAT(pps, tmpMax) is
+      if card pps > 0 then
+         let (p1, p2) = hd pps,
+             (curSId2, curAT2, curDT2) = p2
+         in
+            if curAT2 > tmpMax then
+               findPlanPairMaxAT(pps \ {(p1,p2)}, curAT2)
+            else
+               findPlanPairMaxAT(pps \ {(p1,p2)}, tmpMax)
+            end
+         end
+      else
+         tmpMax
+      end,
+
+
+      -- counts the number of overlapping on a connection at a given time
+      -- pre: planpair-set is filtered based on stopIdPair
+      connectionOverlapsInTimeUnit : Time >< PlanPair-set >< Nat -> Nat
+      connectionOverlapsInTimeUnit (t0, pps, counter) is
+      if card pps > 0 then
+         let (p1, p2) = hd pps,
+             (curSId1, curAT1, curDT1) = p1,         
+             (curSId2, curAT2, curDT2) = p2
+         in
+            if  inEqTimeRange(t0, (curDT1, curAT2)) then
+               connectionOverlapsInTimeUnit(t0, pps \ {(p1,p2)}, counter+1)
+            else
+               connectionOverlapsInTimeUnit(t0, pps \ {(p1,p2)}, counter)
+            end
+         end
+      else
+        counter
+      end,
+
+      -- returns a boolean telling whether a connection is too busy
+      -- (congested) with respect to its maximum capacity and in the
+      -- given time range
+      -- pre:
+      --     * planPair list filtered by stopIdPair
+      isConnectionCongested : TimeRange >< Capacity >< PlanPair-set -> Bool
+      isConnectionCongested((tr0, tr1), conCap, pl) is
+       (exists t0 : Time :- t0 isin timeSetInRange((tr0, tr1), tr0, {}) /\
+                connectionOverlapsInTimeUnit(t0, pl, 0) > conCap),
+                
+      isPlansChronologicalOrder : Plan >< Plan-list -> Bool
+      isPlansChronologicalOrder((sId0, aT0, dT0), pL) is 
+      if len pL > 0 then
+     	 let (sId1, aT1, dT1) = hd pL 
+     	 in
+	      if (aT0 < dT0 /\ dT0 < aT1 ) then
+   	     isPlansChronologicalOrder(hd pL, tl pL)
+	      else
+	        false
+    	   end
+      	 end
+        else
+          true
+        end,
+
+
+      areStopsInPlanListDirectlyConnected : Plan >< Plan-list >< Net -> Bool
+      areStopsInPlanListDirectlyConnected((sId0, aT0, dT0), pL, n) is 
+      if len pL > 0 then
+        let (sId1, aT1, dT1) = hd pL
+	in
+	  if (areDirectlyConnected(sId0, sId1, n)) then 
+	    areStopsInPlanListDirectlyConnected(hd pL, tl pL, n)
+	  else
+	    false
+	  end
+	end
+      else
+        true 
+      end, 
+
+      /* areStopsInTimeTable :  */
+      /*   Plan-list >< Plan >< StopId -> Bool */
+      /* areStopsInTimeTable(pl, (curSId, curAT, curDT), s) is  */
+      /*   if len pl > 0  */
+      /*   then  */
+      /*     let (nextSId, nextAT, nextDT) = hd pl in  */
+      /*       if curSId = s then true  */
+      /*       else  */
+      /*         areStopsInTimeTable( */
+      /*            tl pl, (nextSId, nextAT, nextDT), s)  */
+      /*       end  */
+      /*     end  */
+      /*   else false */
+      /*   end,  */
+      	 
+      	
+      timeTableMinDT : 
+        Plan-list >< Plan >< DrivingTime -> Bool
+      timeTableMinDT(pl, (curSId, curAT, curDT), dt) is 
+        if len pl > 0 
+        then 
+          let (nextSId, nextAT, nextDT) = hd pl in 
+            if ((nextAT - curDT) < dt) then false 
+            else 
+              timeTableMinDT(
+                 tl pl, (nextSId, nextAT, nextDT), dt) 
+            end 
+          end 
+        else true 
+        end, 
+
+
+     isColliding : Plan-list >< Plan-list >< Plan >< Plan >< StopId
+     >< Capacity -> Bool
+     isColliding(pl1, pl2, (curSId1, curAT1, curDT1), (curSId2, curAT2,
+     curDT2), s, c) is 
+     if (len pl1 > 0 \/ len pl2 > 0)
+     then
+       -- this checks if two stops have the same name as in the
+       -- plan. If so it will check if the two stops overlap. If so
+       -- the capacity will be checked and return false if the
+       -- capacity for the stop is less than 2 
+       if (curSId1 = s /\ curSId2 = s /\ ((curDT2 >= curAT1 /\ curAT2 <= curAT1)
+	   \/ (curDT1 >= curAT2 /\ curAT1 <= curAT2)) /\ c < 2) then
+         false
+       else
+         isColliding(tl pl1, tl pl2, hd pl1, hd pl2, s, c)
+       end
+     else
+       true
+     end
+
+
+  value /* predicates to check time tables */
+    isWellformed : TimeTable >< Net -~-> Bool
+    isWellformed(t, (sS, cS)) is
+	isValidArrivalTime(t) /\				-- -2.		
+	isValidDepartureTime(t) /\				-- -1.
+	isValidTram(t) /\					-- 0.
+	noContStopIdEqual(t) /\					-- 1.
+	isTimeTablesChronologicalOrder(t) /\			-- 2.
+	areStopsInTimeTableDirectlyConnected((sS, cS), t) /\	-- 3.
+	allStopsInTimeTable((sS, cS), t) /\			-- 4.
+        checkMinDT((sS, cS),t) /\				-- 5.
+	~ isAnyStopCapEverExceeded(sS, t) /\			-- 6.
+	~ isAnyConCapEverExceeded(cS, t) /\			-- 7.
+	isAllConHWComplied(cS, t) /\				-- 8.
+	areTimeTablesColliding((sS, cS), t),			-- 9.
+
+
+    -- #######
+    -- # Max #
+    -- #######
+    -- 1. two contiguous plans can't have the same
+    --    stopId 
+    noContStopIdEqual : TimeTable -> Bool
+    noContStopIdEqual (tT) is
+    (all pL : Plan-list :- pL isin rng tT =>
+         isContStopIdEqual(tl pL, hd pL) ),
+
+
+    -- 6. The capacity of a stop > number of trams on a stop
+    --    for all time slots
+    -- Natural assumption: arrival time < departure time
+    -- findOverlap
+    isAnyStopCapEverExceeded : Stop-set >< TimeTable -> Bool
+    isAnyStopCapEverExceeded (sS, tT) is
+      if card sS > 0 then
+         let (curSId, curSCap) = hd sS,
+             cpl = combinePLS(rng tT, <..>),
+             fpl = filterByStopId(curSId, cpl, <..>),
+             min = findMinAT(fpl, 24*60),
+             max = findMaxDT(fpl, 0)
+         in
+           if isStopCongested((min, max), curSCap, fpl) then
+              true
+           else
+              isAnyStopCapEverExceeded(sS \ {(curSId, curSCap)}, tT)
+           end
+         end
+      else
+         false
+      end,
+
+
+    -- 7. cross-check that the capacity of a connection > number of 
+    --    trams on a connection given a time slot
+    isAnyConCapEverExceeded : Connection-set >< TimeTable -> Bool
+    isAnyConCapEverExceeded (cS, tT) is
+      if card cS > 0 then
+         let curCon = hd cS,
+             (curIdP, curHW, curCap, curDT) = curCon,
+             cpl = combineDelimitedPLS(rng tT),
+             -- forward connection filtering
+             ffps = filterByStopIdPair(curIdP, cpl, ("",0,0), {}),
+             fmin = findPlanPairMinDT(ffps, 24*60),
+             fmax = findPlanPairMaxAT(ffps, 0),
+             -- backward connection filtering
+             (curId1, curId2) = curIdP,
+             bfps = filterByStopIdPair((curId2, curId1), cpl,
+                                               ("",0,0), {}),
+             bmin = findPlanPairMinDT(bfps, 24*60),
+             bmax = findPlanPairMaxAT(bfps, 0)
+         in
+           if isConnectionCongested((fmin, fmax), curCap, ffps) \/
+               isConnectionCongested((bmin, bmax), curCap, bfps) then
+              true
+           else
+              isAnyConCapEverExceeded(cS \ {curCon}, tT)
+           end
+         end
+      else
+         false
+      end,
+
+
+
+    -- ########
+    -- # Mads #
+    -- ########
+    -- -2. Check that arriavl time >= 0 and arrivalTime
+    --     < departureTime
+    -- 
+    isValidArrivalTime : TimeTable -> Bool
+    isValidArrivalTime(tT) is 
+      (all tId : TramId :- 
+         tId isin tT => 
+           ((all (sId, aT, dP) : Plan :- 
+               (sId, aT, dP) isin tT(tId) => 
+                 (aT >= 0 /\ aT < dP)))), 
+      	 
+    -- -1. Check that departure time > 0 and departureTime
+    --     > arrivalTime 
+    isValidDepartureTime : TimeTable -> Bool
+    isValidDepartureTime(tT) is 
+      (all tId : TramId :- 
+         tId isin tT => 
+           ((all (sId, aT, dP) : Plan :- 
+               (sId, aT, dP) isin tT(tId) => 
+                 (dP > 0 /\ dP > aT)))),
+                 
+    -- 0. Check that the TramId is not empty
+    isValidTram : TimeTable -> Bool
+    isValidTram(tT) is 
+      (all tId1 : TramId :- 
+         tId1 isin tT => 
+           (~ (exists! tId2 : TramId :- 
+                 tId2 isin tT /\ (tId2 = "")))), 
+
+
+    -- 4. all stops in the timetable must be in the
+    -- net 
+    allStopsInTimeTable : Net >< TimeTable -> Bool
+    allStopsInTimeTable((sS, cS), tT) is 
+      (all pL : Plan-list :- 
+         pL isin rng tT => 
+           (all (pSId, at, dt) : Plan :-
+                (pSId, at, dt) isin elems pL =>
+                (exists (sId, c) : Stop :-
+                        (sId, c) isin sS /\ pSId = sId
+                )
+           )
+      ),
+
+    -- 5. arrival to B - departure from A > min driving
+    -- time connection A->B 
+    checkMinDT : Net >< TimeTable -> Bool
+    checkMinDT((sS, cS), tT) is 
+      (all pL : Plan-list :- 
+         pL isin rng tT => 
+           ((exists ((s1, s2), hw, c, dt) : Connection :- 
+               ((s1, s2), hw, c, dt) isin cS /\ 
+               timeTableMinDT(tl pL, hd pL, dt)))), 
+
+
+    -- 9. two trains travelling on the same connections
+    -- can't crash
+    --    (depT1 < depT2 -> arrT1 < arrT2)
+    areTimeTablesColliding : Net >< TimeTable -> Bool
+    areTimeTablesColliding((sS, cS), tT) is
+		  (all pL1 : Plan-list :- pL1 isin rng
+		  tT => (all pL2 : Plan-list :- pL2
+		  isin rng tT => ( (all
+		  (s,c) : Stop :- (s,c) isin sS =>
+		  isColliding(tl pL1, tl pL2, hd pL1,
+		  hd pL2, s, c))))),
+
+    -- ########
+    -- # Fred #
+    -- ########
+    -- 2. given a tramId, growing order plan by plan
+    isTimeTablesChronologicalOrder : TimeTable -> Bool
+    isTimeTablesChronologicalOrder(tT) is
+      ( all pL : Plan-list :- pL isin rng tT =>
+          isPlansChronologicalOrder(hd pL, tl pL) ),
+
+     -- 3. contiguous stops in a plan must be directly
+     -- connected
+     areStopsInTimeTableDirectlyConnected : Net >< TimeTable -> Bool
+     areStopsInTimeTableDirectlyConnected(n, tT) is
+        (all pL : Plan-list :- pL isin rng tT => 
+	         areStopsInPlanListDirectlyConnected(hd pL, tl pL, n)
+       	),
+
+      -- 8. for connection capacity >= 2 ensure that
+      -- the distance in time between
+      --    two following trains is at least the headway
+      -- of the undelying
+      --    connection
+      isAllConHWComplied : Connection-set >< TimeTable -> Bool
+      isAllConHWComplied (cS, tT) is
+        if card cS > 0 then
+	  let curCon = hd cS,
+            (curIdP, curHW, curCap, curDT) = curCon,
+            cpl = combineDelimitedPLS(rng tT),
+	    -- forward --
+            fpps = filterByStopIdPair(curIdP, cpl, ("",0,0), {}),
+	    -- backward -- 
+	    (curId1, curId2) = curIdP, 
+	    bpps = filterByStopIdPair((curId2, curId1), cpl, ("",0,0), {})
+          in
+            if isHWInConComplied(curHW, fpps) /\ 
+	       isHWInConComplied(curHW, bpps) then
+	         isAllConHWComplied(cS \ {curCon}, tT)
+            else
+	      false
+            end
+          end
+	else
+          true
+	end,
+
+	
+      isHWInConComplied : Nat >< PlanPair-set -> Bool
+      isHWInConComplied(hw, pps) is
+	  (all ((sIdi1, ati1, dti1),(sIde1, ate1, dte1)) : PlanPair 
+	    :- ((sIdi1, ati1, dti1),(sIde1, ate1, dte1)) isin pps =>
+	    
+	    (~(exists ( (sIdi2, ati2, dti2),(sIde2, ate2, dte2) ) : PlanPair 
+	           :- ((sIdi2, ati2, dti2),(sIde2, ate2, dte2)) 
+	     isin ( pps \ {((sIdi1, ati1, dti1),(sIde1, ate1, dte1))} ) /\ 
+		(abs(dti1-dti2) < hw \/ abs(ate1-ate2) < hw)
+	    ))
+	  )
+
+  end

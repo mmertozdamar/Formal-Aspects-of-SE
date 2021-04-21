@@ -1,0 +1,383 @@
+NET
+
+scheme testNET =
+extend NET with 
+class
+value
+
+ largeSS : Stop-set = {("s1", 1), ("s2", 2), ("s3", 1),("s4", 2),
+                       ("s5", 1),("s6", 2), ("s7", 1),("s8", 2),
+                       ("s10", 1),("s9", 2), ("s11", 1)}
+
+ test_case
+	-- testing that an illegal stop can be added without an empty connection-set
+   [illegalStopInsert] insertStop(
+                            ("stop1", 4, empty)) = ({("stop1",4)}, {}),
+
+	-- insert to a stop that is not empty
+   [stopInsertToNotEmpty] insertStop(
+                   ("stop1", 10, ({("stop1",4)}, {}))) =
+                         ({("stop1",4),("stop1", 10)}, {}),
+
+	-- add a connection to empty set
+   [addConnectionToEmpty] addConnection(
+                   "stop1", "stop2", 10, 4, 15, empty) =
+                          ({},{( ("stop1","stop2"), 10, 4, 15)}),
+                          
+	-- add illegal connection to connection-set
+   [illegalAddConnection] addConnection(
+                   "stop1", "stop2", 50, 1, 60,
+                   ({},{( ("stop1","stop2"),10, 4, 15)})) =
+                       ({},{
+                       ( ("stop1","stop2"), 10, 4, 15),
+                       ( ("stop1","stop2"), 50, 1, 60)
+                       }),
+
+	-- testing if given stop is in net
+   [basicIsInOK] isIn( "stop1", ( {("stop1",4)}, {}) ) = true,
+
+	-- testing if present stop is in net 
+   [basicIsInFail] isIn( "newStop", ( {("stop1",4)}, {}) ) = false,
+    
+	-- testing that given a stopId the correct capacity is returned
+   [findCapacityStopOK] findCapacity("stop1", {("stop1", 5),("stop2", 10)},
+                                     ("stop3",15) ) = 5,
+                                     
+    -- expected "hd applied to empty set"
+   [findCapacityStopFail] findCapacity(
+                          "stop4", {("stop1", 5),("stop2", 10)},
+                                    ("stop3",15) ), 
+    
+	-- more complex test of same function
+   [capacityOKComplex]
+              capacity("stop3",
+              ({("stop1", 1),("stop2", 2),("stop3", 3),("stop4", 4),
+               ("stop5", 5),("stop6", 6),("stop7",7)},{}) ) = 3,
+
+	-- testing if two stops are directly connected
+   [areDirectlyConnectedOK]
+              areDirectlyConnected("stop1","stop2",
+                            ({}, {( ("stop1","stop2"), 1, 1, 1)}) ) = true,
+
+	-- checks that if stops and connection are various the correct result is granted
+   [areDirectlyConnectedFail]
+              areDirectlyConnected("stop1","disconnected",
+                            ({}, {( ("stop1","stop2"), 1, 1, 1)}) ) = false,
+
+	-- testing that a stop between two other stops that are connected returns false.
+   [areDirectlyConnectedNotDirect]
+              areDirectlyConnected("stop1","stop3",
+                            ({}, { ( ("stop1","stop2"), 1, 1, 1),
+                                   ( ("stop2","stop3"), 2, 2, 2)}) ) = false,
+
+	-- compare stops that are equal
+   [cmpStopPairOK]
+              cmpStopIdPair( ("stop1", "stop2"), ("stop1", "stop2") ) = true,
+
+	-- checks that order does not matter
+   [cmpStopPairOKRev]
+              cmpStopIdPair( ("stop1", "stop2"), ("stop2", "stop1") ) = true,
+
+	-- compare stops that are not equal
+   [cmpStopPairFail]
+              cmpStopIdPair( ("stop1", "stop2"), ("stop1", "stop3") ) = false,
+
+	-- testing the minimum headway for a net returns correct value
+   [findMinHWOK] findMinHW( ("stop1", "stop2"),
+                       {
+                        ( ("stop1", "stop2"), 10, 4, 15),
+                        ( ("stop1", "stop3"), 50, 1, 60)
+                       },
+                       ( ("stop2", "stop3"), 50, 1, 60)) = 10,
+
+	-- testing that minimum headway fails as expected
+   [findMinHWFail] findMinHW( ("stop1", "stop3"),
+                   {
+                    ( ("stop1", "stop2"), 10, 4, 15),
+                    ( ("stop2", "stop3"), 50, 1, 60)
+                   },
+                   ( ("stop3", "stop4"), 50, 1, 60)),
+                          -- expected "hd applied to empty set"
+
+	-- more complex scenario
+   [minHeadwayComplex] minHeadway("stop3", "stop4",
+                   ({}, {
+                    ( ("stop1", "stop2"), 1, 1, 1),
+                    ( ("stop2", "stop3"), 2, 2, 2),
+                    ( ("stop3", "stop4"), 3, 3, 3),
+                    ( ("stop4", "stop5"), 4, 4, 4),
+                    ( ("stop5", "stop6"), 5, 5, 5),
+                    ( ("stop6", "stop7"), 6, 6, 6)
+                   }) ) = 3,
+    
+	-- testing that minimum headway fails again
+   [minHeadwayPreFail] minHeadway("stop1", "stop3",
+                   ({}, {
+                    ( ("stop1", "stop2"), 1, 1, 1),
+                    ( ("stop2", "stop3"), 2, 2, 2)
+                   }) ), -- expected failing pre 
+
+	-- testing that find minimum driving time works as intended
+   [findMinDTOK] findMinDT( ("stop1", "stop2"),
+   		       {
+		        (  ("stop1", "stop2"), 10, 4, 15),
+		      	(  ("stop1", "stop3"), 50, 1, 60)
+		         },
+		        (  ("stop2", "stop3"), 50, 1, 60)) = 15,
+            
+   -- expected "hd applied to empty set"
+   [findMinDTFail] findMinDT( ("stop1", "stop3"),
+			 { 
+			  ( ("stop1", "stop2"), 10, 4, 15),
+			  ( ("stop2", "stop3"), 50, 1, 60)
+			 },
+			 ( ("stop3", "stop4"), 50, 1, 60)) , 
+
+	-- testing that the capacity does not hold for this input
+   [capacityConnectionPreFail] capacity ("stop1", "stop3",
+                   ({}, {
+                    ( ("stop1", "stop2"), 1, 1, 1),
+                    ( ("stop2", "stop3"), 2, 2, 2)
+                   }) ), -- expected failing pre 
+
+	-- testing of correct output for findCapacity
+   [findCapacityConnectionOK] findCapacity( ("s1", "s2"),
+       {
+        ( ("s1", "s2"), 10, 4, 15),
+		    ( ("s1", "s3"), 50, 1, 60)
+       },
+        ( ("s2", "s3"), 50, 1, 60)) = 4,
+
+   [findCapacityConnectionFail] findCapacity( ("s1", "s2"),
+       {
+		    ( ("s1", "s3"), 50, 1, 60)
+       },
+        ( ("s3", "s2"), 50, 1, 60)), -- element not found in connection set
+                                     -- "hd applied to empty set" expected
+        
+    -- checks that for card = 1 expected output is false
+   [areEnoughStops_1Stop] areEnoughStops( {("stop1", 1)} ) = false,
+   
+    -- checks that for card > 1 true is returned
+   [areEnoughStops_2Stop] areEnoughStops( {("stop1", 1),
+                                           ("stop2", 2)} ) = true,
+                                           
+	-- testing that for card = 0 expected output is false
+   [areEnoughConnections_0Con] areEnoughConnections( {} ) = false,
+
+	-- testing that for card > 0 true is returned
+   [areEnoughConnections_1Con] areEnoughConnections( {
+                               ( ("stop1", "stop2"), 10, 4, 15)
+                               } ) = true,
+
+   -- stop1's only successor is stop2
+   [getConnectedStopsBasic] getConnectedStops(
+                               "stop1",
+                               ({("stop1", 1),("stop2", 2)},
+                               { ( ("stop1","stop2"), 1, 1, 1),
+                                 ( ("stop2","stop3"), 2, 2, 2)}), {}, {})
+                                      = {"stop2"},
+   -- No successor of stop1 as stop2 has already been explored
+   [getConnectedStopsExplored] getConnectedStops(
+                               "stop1",
+                               ({("stop1", 1),("stop2", 2),("stop3", 3)},
+                               { ( ("stop1","stop2"), 1, 1, 1),
+                                 ( ("stop2","stop3"), 2, 2, 2)}),
+                                 {}, {"stop2"}) = {},
+   -- The only direct successor of s1 are s2, s3 and s4. Since s2
+   -- has already been explored, the function returns s3 and s4.
+   [getConnectedStopsComplex] getConnectedStops(
+                               "s1",
+                               ({("s1", 1),("s2", 2),
+                                 ("s3", 1),("s4", 2),
+                                 ("s5", 1),("s6", 2),
+                                 ("s7", 1),("s8", 2),
+                                 ("s10", 1),("s9", 2),
+                                 ("s11", 1)}, 
+                               { ( ("s1","s2"), 1, 1, 1),
+                                 ( ("s1","s3"), 2, 2, 2),
+                                 ( ("s1","s4"), 2, 2, 2),
+                                 ( ("s4","s5"), 2, 2, 2),
+                                 ( ("s5","s11"), 2, 2, 2),
+                                 ( ("s3","s6"), 2, 2, 2),
+                                 ( ("s2","s7"), 2, 2, 2),
+                                 ( ("s7","s9"), 2, 2, 2),
+                                 ( ("s7","s10"), 2, 2, 2),
+                                 ( ("s2","s8"), 2, 2, 2)
+                                }), {}, {"s2"}) = {"s3", "s4"},
+   -- true because s1 -> s2 -> s3
+   [isNetFCBasic] isNetFullyConnected(
+                               {"s1"},{},
+                               ({("s1", 1),("s2", 2),("s3",3)},
+                               { ( ("s1","s2"), 1, 1, 1),
+                                 ( ("s2","s3"), 2, 2, 2)}) ) = true,
+   -- false because for example s1 -> s2 -\-> s3 -> s4 
+   [isNetFCNetSet] isNetFullyConnected(
+                               {"s1"},{},
+                               ( {("s1",1),("s2", 2),
+                                  ("s3",3),("s4",4),
+                                  ("s5",5),("s6",6) },            
+                               { ( ("s1","s2"), 1, 1, 1),
+                                 ( ("s3","s4"), 1, 1, 1),
+                                 ( ("s5","s6"), 1, 1, 1) } ) ) = false,
+   -- true for example:
+   -- s1 -> s2 -> s7 -> s9
+   --       s2 -> s8
+   --             s7 -> s10
+   -- s1 -> s3 -> s6
+   -- s1 -> s3 -> s11
+   -- s1 -> s4 -> s5  V
+   [isNetFCHyperConnected] isNetFullyConnected(
+                               {"s1"}, {},
+                               ( largeSS, 
+                               { ( ("s1","s2"), 1, 1, 1),
+                                 ( ("s1","s3"), 2, 2, 2),             
+                                 ( ("s1","s4"), 2, 2, 2),
+                                 ( ("s4","s5"), 2, 2, 2),
+                                 ( ("s5","s11"), 2, 2, 2),
+                                 ( ("s3","s6"), 2, 2, 2),
+                                 ( ("s2","s7"), 2, 2, 2),
+                                 ( ("s7","s9"), 2, 2, 2),
+                                 ( ("s7","s10"), 2, 2, 2),
+                                 ( ("s2","s8"), 2, 2, 2),
+                                 ( ("s1","s10"), 2, 2, 2),
+                                 ( ("s8","s10"), 2, 2, 2),
+                                 ( ("s4","s9"), 2, 2, 2),
+                                 ( ("s3","s11"), 2, 2, 2),
+                                 ( ("s5","s6"), 2, 2, 2),
+                                 ( ("s1","s6"), 2, 2, 2) } ) ) = true,
+   -- false for example:
+   -- s1 -> s3 -> s6 |
+   -- s1 -> s4 -> s5 -> s11 |
+   -- s1          s5 -> s6  |
+   -- s1 -/-> s2 X
+   [isNetFCHyperConnectedFail] isNetFullyConnected(
+                               {"s1"}, {},
+                               ( largeSS, 
+                               { ( ("s1","s3"), 2, 2, 2),             
+                                 ( ("s1","s4"), 2, 2, 2),
+                                 ( ("s4","s5"), 2, 2, 2),
+                                 ( ("s5","s11"), 2, 2, 2),
+                                 ( ("s3","s6"), 2, 2, 2),
+                                 ( ("s2","s7"), 2, 2, 2),
+                                 ( ("s7","s9"), 2, 2, 2),
+                                 ( ("s7","s10"), 2, 2, 2),
+                                 ( ("s2","s8"), 2, 2, 2),
+                                 ( ("s8","s10"), 2, 2, 2),
+                                 ( ("s3","s11"), 2, 2, 2),
+                                 ( ("s5","s6"), 2, 2, 2),
+                                 ( ("s1","s6"), 2, 2, 2) } ) ) = false,
+   
+   [isWellformedIntegrated] isWellformed (
+                               ( largeSS,
+                               { ( ("s1","s2"), 1, 1, 1),
+                                 ( ("s1","s3"), 2, 2, 2),             
+                                 ( ("s1","s4"), 2, 2, 2),
+                                 ( ("s4","s5"), 2, 2, 2),
+                                 ( ("s5","s11"), 2, 2, 2),
+                                 ( ("s3","s6"), 2, 2, 2),
+                                 ( ("s2","s7"), 2, 2, 2),
+                                 ( ("s7","s9"), 2, 2, 2),
+                                 ( ("s7","s10"), 2, 2, 2),
+                                 ( ("s2","s8"), 2, 2, 2),
+                                 ( ("s1","s10"), 2, 2, 2),
+                                 ( ("s8","s10"), 2, 2, 2),
+                                 ( ("s4","s9"), 2, 2, 2),
+                                 ( ("s3","s11"), 2, 2, 2),
+                                 ( ("s5","s6"), 2, 2, 2),
+                                 ( ("s1","s6"), 2, 2, 2) } ) ) = true,
+                                 
+   -- TODO: remove if we take isInStopPair out
+   [isInStopPairPass] isInStopPair(("s1", 1), ("s1","s2")) = true,
+   [isInStopPairFail] isInStopPair(("s1", 1), ("s2","s3")) = false,
+
+	-- testing if the provided stopIds for the stops are used in StopIdPair
+   [idEqualsPass] idEquals(("s1", 1), ("s2", 2), ("s1","s2")) = true,
+   [idEqualsFail] idEquals(("s1", 1), ("s3", 2), ("s1","s2")) = false,
+   
+	-- testing if for each stopId in a connection that a corresponding stopId in a stop is present
+   [conSetMatchStopSetPass] conSetMatchStopSet(
+                               ({("s1", 1),("s2", 2)},
+                               { ( ("s1","s2"), 1, 1, 1),
+                                 ( ("s2","s1"), 2, 2, 2)})) = true,
+
+   [conSetMatchStopSetFail] conSetMatchStopSet(
+                               ({("s1", 1),("s2", 2)},
+                                {( ("s2","s3"), 2, 2, 2)})) = false,
+
+	-- check if stopId is in stopIdPair
+   [stopIdIsInStopIdPairOK] stopIdIsInStopIdPair
+                            ( "s1", ("s1", "s2") ) = true,
+   [stopIdIsInStopIdPairFail] stopIdIsInStopIdPair
+                            ( "s1", ("s3", "s2") ) = false,
+                           
+	-- testing that every stopId in a stop is unique
+   [checkIsUniqueStopIdOK] isUniqueStopId(
+		       {("s1",2),("s2",3),("s3",8)},
+		       {(("s1","s2"),1,1,10),(("s2","s3"),2,3,12),(("s2","s4"),2,2,7)}) = true,
+
+   [checkIsUniqueStopIdFail] isUniqueStopId(
+			 {("s1",2),("s2",3),("s1",4)},
+			 {(("s1","s2"),1,1,10),(("s2","s3"),2,3,12),(("s2","s4"),2,2,7)}) = false,
+
+   [checkIsUniqueStopIdEmpty] isUniqueStopId(
+			 {("",2),("s1",4),("s2",5)},
+			 {(("s1","s2"),1,1,10)}) = false,
+
+	-- testing that there is not multiple connections to the same stops
+   [checkIsOneConnectionOK] isOneConnection(
+			  {("s1",2),("s2",3),("s3",4)},
+			  {(("s1","s2"),1,2,3),(("s2","s3"),3,2,1)}) =
+			  true,
+
+   [checkIsOneConnectionFail] isOneConnection(
+			    {("s1",2),("s2",3),("s3",4)},
+			    {(("s1","s2"),1,2,3),(("s1","s2"),3,2,1)})
+			    = false,
+
+	-- testing that every stop is connected to another stop
+   [checkIsConnectedToOtherOK] isConnectedToOther(
+			     {("s1",2),("s2",3),("s3",4),("s4",5)},
+			     {(("s1","s2"),1,2,3),(("s2","s3"),2,3,4),(("s3","s4"),3,2,1)}) = true,
+
+   [checkIsConnectedToOtherFail] isConnectedToOther(
+			     {("s1",2),("s2",3),("s3",4),("s4",5)},
+			     {(("s1","s2"),1,2,3),(("s2","s3"),2,3,4)}) = false,
+
+	-- testing that DT > 0
+   [checkIsValidDTOK] isValidDT(
+				   {("s1",2),("s2",3),("s3",4)},
+				   {(("s1","s2"),1,2,3),(("s2","s3"),3,2,1)}) = true,
+
+   [checkIsValidDTFail] isValidDT(
+			{("s1",2),("s2",3)},
+			{(("s1","s2"),1,2,0)}) = false,
+
+	-- testing that hw > 0
+   [checkIsValidHWOK] isValidHW(
+   		      {("s1",2),("s2",3)},
+		      {(("s1","s2"),5,4,10)}) = true,
+
+   [checkIsValidHWFail] isValidHW(
+   			{("s1",2),("s2",3)},
+			{(("s1","s2"),0,2,3)}) = false,
+
+	-- testing that the capacity of a stop is greater than 0
+   [checkIsValidCapacityStopOK] isValidCapacityStop(
+   				{("s1",2),("s2",4)},
+				{(("s1","s2"),1,2,3)}) = true,
+
+   [checkIsValidCapacityStopFail] isValidCapacityStop(
+   				  {("s1",2),("s2",0)},
+				  {(("s1","s2"),1,2,3)}) = false,
+
+	-- testing that the capacity of a connection is greater than 0
+   [checkIsValidCapacityConnectionOK] isValidCapacityConnection(
+   				      {("s1",10),("s2",1)},
+				      {(("s1","s2"),1,2,3)}) = true,
+
+   [checkIsValidCapacityConnectionFail] isValidCapacityConnection(
+   					{("s1",10),("s2",1)},
+					{(("s1","s2"),1,0,2)}) = false
+
+end 

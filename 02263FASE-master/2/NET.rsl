@@ -1,0 +1,278 @@
+scheme NET =
+class
+  type
+    Net = Stop-set >< Connection-set, -- tram nets
+
+    Stop = StopId >< Capacity,
+    Connection = StopIdPair >< Headway >< Capacity ><  DrivingTime,
+
+    StopIdPair = StopId >< StopId, -- this might be extra
+    Headway = Time, -- minimum headways
+    DrivingTime = Time, -- minimum driving times
+
+    Time = Nat, -- times in number of minutes
+    Capacity = Nat, -- capacities
+    StopId = Text  -- names of stops
+
+  value /* generators */
+  
+    empty :  Net = ({},{}),  -- the empty net
+
+    -- insert a stop with a given name and capacity
+    insertStop : StopId >< Capacity >< Net -> Net
+    insertStop(sId, c, (sS, cS)) is (sS union {(sId, c)}, cS),
+
+    -- add a connection between given stops,
+    -- with the given minimum headway, capacity and minimum driving time
+    addConnection : StopId >< StopId  >< Headway >< Capacity >< DrivingTime
+	>< Net -> Net
+    addConnection(sId1, sId2, hw, c, dt, (sS, cS)) is
+                        (sS, cS union {( (sId1, sId2), hw, c, dt)} )
+
+
+  value /* observers */
+  
+    -- check whether a stop is in a network
+    isIn : StopId >< Net -> Bool
+    isIn(sId, (sS, cS)) is
+         (exists (sId0, c0) : Stop
+                 :- (sId0, c0) isin sS /\ sId = sId0),
+
+
+    -- get the capacity of a stop
+    capacity : StopId >< Net -~-> Capacity
+    capacity(sId, (sS, sC)) is
+                  let head = hd(sS) -- preventing hd non-determinism
+                  in
+                      findCapacity(sId, sS \ {head}, head )
+                  end,
+
+    -- recurse to find the capacity of passed the input stopId
+    findCapacity : StopId >< Stop-set >< Stop -~-> Capacity
+    findCapacity(sId, sS, (sId0, c0)) is
+               if (sId = sId0) then
+                    c0
+               else
+                    let head = hd(sS) -- preventing hd non-determinism
+                    in
+                      findCapacity(sId, sS \ {head}, head)
+                    end
+               end,
+ 
+  -- check whether two stops are directly connected in a network  
+  areDirectlyConnected : StopId >< StopId >< Net -> Bool
+  areDirectlyConnected (sId1, sId2, (sS, cS)) is
+                             ( exists ( (s1,s2),hw,c,dt ) : Connection :-
+                             ( (s1,s2),hw,c,dt ) isin cS /\
+                             cmpStopIdPair( (sId1, sId2), (s1, s2) ) ),
+
+  cmpStopIdPair : StopIdPair >< StopIdPair -> Bool
+  cmpStopIdPair((s1p1, s2p1), (s1p2, s2p2)) is
+                             ( (s1p1=s1p2 /\ s2p1=s2p2) \/
+                               (s1p1=s2p2 /\ s2p1=s1p2) ),
+
+  -- get minimum headway between two connected stops
+  minHeadway : StopId >< StopId >< Net -~-> Headway 
+  minHeadway(sId1, sId2, (sS, cS)) is
+                   let head = hd(cS)
+                   in
+                     findMinHW( (sId1, sId2), cS \ {head}, head )
+                   end
+             pre areDirectlyConnected(sId1,sId2,(sS, cS)),
+  
+  -- recurse to find the min headway of passed the input stopIdPair
+  findMinHW : StopIdPair >< Connection-set >< Connection -~-> Headway
+  findMinHW( searchedSP, cS, ( curSP, hw, c, dt)) is
+               if (cmpStopIdPair(searchedSP, curSP)) then
+                    hw
+               else
+                    let head = hd(cS) -- preventing hd non-determinism
+                    in
+                      findMinHW(searchedSP, cS \ {head}, head)
+                    end
+               end,
+
+  capacity : StopId >< StopId >< Net -~-> Capacity 
+  capacity(sId1, sId2, (sS, cS)) is
+		      let head = hd(cS)
+		      in
+		        findCapacity((sId1,sId2), cS \ {head}, head)
+		      end
+		pre areDirectlyConnected(sId1,sId2,(sS, cS)),
+
+  findCapacity : StopIdPair >< Connection-set >< Connection -~-> Capacity
+  findCapacity ( searchedSP, cS, ( curSP, hw, c, dt)) is 
+	       if (cmpStopIdPair(searchedSP, curSP)) then
+		         c
+	       else
+		       let head = hd(cS)
+		       in
+		         findCapacity(searchedSP, cS \ {head}, head)
+ 		       end
+         end,
+
+  minDrivingTime : StopId >< StopId >< Net -~-> DrivingTime
+  minDrivingTime(sId1,sId2, (sS, cS)) is
+		      let head = hd(cS)
+		      in
+		        findMinDT((sId1,sId2), cS \ {head}, head)
+		      end
+		pre areDirectlyConnected(sId1,sId2,(sS, cS)),
+
+  findMinDT : StopIdPair >< Connection-set >< Connection -~->
+  DrivingTime
+  findMinDT( searchedSP, cS, ( curSP, hw, c, dt)) is 
+	       if (cmpStopIdPair(searchedSP, curSP)) then
+		    dt
+	       else
+		    let head = hd(cS)
+		    in
+		      findMinDT(searchedSP, cS \ {head}, head)
+		    end
+      end,
+      
+
+
+    getConnectedStops : StopId >< Net >< StopId-set >< StopId-set -> StopId-set
+    -- iS initialStop
+    -- dCSS: directly connected stop set     
+    getConnectedStops(iS, (sS, cS), dCSS, ex) is
+    if card(sS) > 0 then
+       let (curSId, sCap) = hd sS
+       in
+          if (areDirectlyConnected (iS, curSId, (sS, cS)) /\
+             (curSId ~isin ex) ) then
+             getConnectedStops(iS, (sS\{(curSId, sCap)}, cS), dCSS union
+                                  {curSId}, ex)
+          else
+             getConnectedStops(iS, (sS\{(curSId, sCap)}, cS), dCSS, ex)
+          end
+       end
+    else
+       dCSS
+    end,
+
+    -- not used, but may be useful
+    stopIdIsInStopIdPair : StopId >< StopIdPair -> Bool
+    stopIdIsInStopIdPair(sId, (sId1, sId2)) is
+        sId = sId1 \/ sId = sId2,
+
+    idEquals : Stop >< Stop >< StopIdPair -> Bool
+    idEquals( (sId1, c1), (sId2, c2), (sId1SP, sId2SP)) is
+        ( sId1 = sId1SP /\ sId2 = sId2SP ) \/
+        ( sId1 = sId2SP /\ sId2 = sId1SP ),
+        
+    -- not used, but may be useful
+    isInStopPair : Stop >< StopIdPair -> Bool
+    isInStopPair((sId, c), (sId1, sId2)) is
+        ( sId = sId1 \/ sId = sId2 )
+
+
+  value /* predicates to check nets */
+    isWellformed : Net -> Bool 
+    isWellformed(sS, cS) is
+                     let (sIdS, caps) = hd sS
+                     in
+                         areEnoughStops(sS) /\
+                         areEnoughConnections(cS) /\
+                         conSetMatchStopSet((sS, cS)) /\
+                         isNetFullyConnected( {sIdS}, {}, (sS, cS) ) /\
+			 isUniqueStopId(sS, cS) /\
+			 isOneConnection(sS, cS) /\
+			 isConnectedToOther(sS, cS) /\
+			 isValidDT(sS, cS) /\
+			 isValidHW(sS, cS) /\
+			 isValidCapacityStop(sS, cS) /\
+			 isValidCapacityConnection(sS, cS)
+                     end,
+    -- 1. |stops| > 1 
+    areEnoughStops : Stop-set -> Bool
+    areEnoughStops(sS) is card(sS) > 1,
+    
+    -- 2. |connections| > 0 
+    areEnoughConnections : Connection-set -> Bool 
+    areEnoughConnections(cS) is card(cS) > 0,
+    
+    -- 3. for each element in the connection set there exists
+    --    an element in the stop set
+    conSetMatchStopSet : Net -> Bool
+    conSetMatchStopSet(( sS, cS )) is
+        ( all (sP, hw, capC, dt) :
+              StopIdPair >< Headway >< Capacity >< DrivingTime :-
+              (sP, hw, capC, dt) isin cS =>
+                      ( exists s1 : Stop :- s1 isin sS /\
+                           (exists s2 : Stop :- s2 isin sS /\
+                                   idEquals(s1, s2, sP) ) ) ),
+        
+    -- 4. check that from each stop there exists a path to any other
+    --    Breadth First Search (BFS)
+    isNetFullyConnected : StopId-set >< StopId-set >< Net -> Bool
+    -- q: queue
+    -- ex: explored
+    isNetFullyConnected(q, ex, (sS, cS)) is
+    if card(ex) = card(sS) then
+       true
+    elsif card(q) = 0 then
+       false
+    else
+       let s = hd q
+       in
+          let dCSS = getConnectedStops(s, (sS, cS), {}, ex)
+          in
+              isNetFullyConnected( (q \ {s}) union dCSS,
+                                   ex union {s},
+                                   (sS, cS) )
+          end
+       end
+    end,
+
+    -- 5. ensures that each stop has a unique stopId and that they
+    --    are not empty
+    isUniqueStopId : Net -> Bool
+    isUniqueStopId(sS, cS) is 
+			(all (s1,c1) : Stop :- (s1,c1) isin sS => 
+			     ( (exists! (s2,c2) : Stop :- (s2,c2) isin
+			     sS /\ ((s1 = s2) \/ s1 = "" \/ s2 = "")))),  
+
+    -- 6. ensures that there does not exist a connection which
+    --     has multiple connections to the same stop
+    isOneConnection : Net -> Bool
+    isOneConnection(sS, cS) is 
+			(all ((s1,s2),hw1,c1,dt1) : Connection :-
+  	    ((s1,s2),hw1,c1,dt1) isin cS =>
+			    ~(exists ((s3,s4),hw2,c2,dt2) : Connection :-
+  			    ((s3,s4),hw2,c2,dt2) isin (cS \ {( (s1,s2),hw1,c1,dt1 )}) /\
+              ( (s1 = s4 /\ s2 = s3) \/
+                (s1 = s3 /\ s2 = s4)
+              )
+            )
+      ),
+
+    -- 7. ensures that all stops are connected to another stop
+    isConnectedToOther : Net -> Bool 
+    isConnectedToOther(sS, cS) is 
+			   (all (s1,c) : Stop :- (s1,c) isin sS =>
+				( (exists ((s2,s3),hw,c,dt) :
+				Connection :- ((s2,s3),hw,c,dt) isin
+				cS /\ (s1 = s2 \/ s1 = s3)))),
+        
+    -- 8. DT > 0
+    isValidDT : Net -> Bool
+    isValidDT(sS, cS) is (all ((s1,s2),hw,c,dt) : Connection :- ((s1,s2),hw,c,dt) isin cS =>
+	(dt > 0)),
+
+    -- 9. HW > 0
+    isValidHW : Net -> Bool
+    isValidHW(sS, cS) is (all ((s1,s2),hw,c,dt) : Connection :- ((s1,s2),hw,c,dt) isin cS => 
+	(hw > 0)),
+
+    -- 10. (s,c), c > 0
+    isValidCapacityStop : Net -> Bool
+    isValidCapacityStop(sS, cS) is (all (s,c) : Stop :- (s,c) isin sS => (c > 0)),
+
+    -- 11. ((s1,s2),hw,c,dt), c > 0
+    isValidCapacityConnection : Net -> Bool
+    isValidCapacityConnection(sS, cS) is (all ((s1,s2),hw,c,dt) : Connection :- 
+	((s1,s2),hw,c,dt) isin cS => (c > 0))
+
+end  

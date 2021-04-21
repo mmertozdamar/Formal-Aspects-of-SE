@@ -1,0 +1,103 @@
+Standard ML of New Jersey v110.79 [built: Tue Aug  8 16:59:50 2017]
+- [opening /home/mm/FASE/02263FASE/testGroupingEx.sml]
+[autoloading]
+[library $smlnj/cm/cm.cm is stable]
+[library $smlnj/internal/cm-sig-lib.cm is stable]
+[library $/pgraph.cm is stable]
+[library $smlnj/internal/srcpath-lib.cm is stable]
+[library $SMLNJ-BASIS/basis.cm is stable]
+[library $SMLNJ-BASIS/(basis.cm):basis-common.cm is stable]
+[autoloading done]
+val it = () : unit
+val it = true : bool
+val it = () : unit
+val it = () : unit
+val it = () : unit
+val it = true : bool
+[opening testGroupingEx_.sml]
+structure RT_Text : <sig>
+structure RT_x_1 : <sig>
+structure RT_s_2 : <sig>
+structure RT_s_3 : <sig>
+structure RT_s_4 : <sig>
+structure RT_Bool : <sig>
+structure RT_x_5 : <sig>
+structure RT_x_6 : <sig>
+structure RT_x_7 : <sig>
+structure RT_x_8 : <sig>
+structure RT_Nat : <sig>
+structure RT_x_9 : <sig>
+structure RT_x_10 : <sig>
+structure RT_x_11 : <sig>
+structure RT_x_12 : <sig>
+structure testGroupingEx : <sig>
+open testGroupingEx
+val it = () : unit
+val it = () : unit
+val it = () : unit
+val it = () : unit
+[isFriendsRelationEmpty] true
+val it = () : unit
+[isFriendsRelationEmptyLonely] true
+val it = () : unit
+[isFriendsRelationSwapped] true
+val it = () : unit
+[isFriendsRelationExample] true
+val it = () : unit
+[areFriendsOK] true
+val it = () : unit
+[areFriendsFail] true
+val it = () : unit
+[areFriendsWithThemselves] true
+val it = () : unit
+[isCorrectGroupingOK] true
+val it = () : unit
+[isCorrectGroupingFail] true
+val it = () : unit
+[noFriendsInGroupFail] true
+val it = () : unit
+[noFriendsInGroupOK] true
+val it = () : unit
+[isGroupsUnionEqualSetOK] true
+val it = () : unit
+[isGroupsUnionEqualSetFail] true
+val it = () : unit
+[isPersonInGroupingOK] true
+val it = () : unit
+[isPersonInGroupingFail] true
+val it = () : unit
+[areGroupsDisjointOK] true
+val it = () : unit
+[areGroupsDisjointFail] true
+val it = () : unit
+[divideEmptyRelation] true
+val it = () : unit
+[divideBasic] true
+val it = () : unit
+[divideExample] {{"Frederik","Mette"},{"Peter","Anna","Joachim"},{"Henrik","Hans"}}
+val it = () : unit
+[genSingletons] true
+val it = () : unit
+[genGroups] {{"A"},{"C","B"}}
+val it = () : unit
+[genGroupsFromSingletons] {{"E","D","B"},{"C"},{"A","F"}}
+val it = () : unit
+[genGroupsHard] {{"F","B"},{"L","C","Q","M","A","D"}}
+val it = () : unit
+[getMergeableGroupsBasic] true
+val it = () : unit
+[getMergeableUnmergeable] true
+val it = () : unit
+[getMergeableDifficult] true
+val it = () : unit
+[thereAreNotFriendsOK] true
+val it = () : unit
+[thereAreNotFriendsFail] true
+val it = () : unit
+val it = () : unit
+Complete expression coverage of GroupingEx.rsl
+Complete expression coverage of GroupingBasics.rsl
+val it = () : unit
+val it = () : unit
+val it = () : unit
+- 

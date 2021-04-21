@@ -1,0 +1,134 @@
+open testNET
+val it = () : unit
+val it = () : unit
+val it = () : unit
+val it = () : unit
+[illegalStopInsert] true
+val it = () : unit
+[stopInsertToNotEmpty] true
+val it = () : unit
+[addConnectionToEmpty] true
+val it = () : unit
+[illegalAddConnection] true
+val it = () : unit
+[basicIsInOK] true
+val it = () : unit
+[basicIsInFail] true
+val it = () : unit
+[findCapacityStopOK] true
+val it = () : unit
+[findCapacityStopFail] hd applied to empty set
+val it = () : unit
+[capacityOKComplex] true
+val it = () : unit
+[areDirectlyConnectedOK] true
+val it = () : unit
+[areDirectlyConnectedFail] true
+val it = () : unit
+[areDirectlyConnectedNotDirect] true
+val it = () : unit
+[cmpStopPairOK] true
+val it = () : unit
+[cmpStopPairOKRev] true
+val it = () : unit
+[cmpStopPairFail] true
+val it = () : unit
+[findMinHWOK] true
+val it = () : unit
+[findMinHWFail] hd applied to empty set
+val it = () : unit
+[minHeadwayComplex] true
+val it = () : unit
+[minHeadwayPreFail] NET.rsl:80:18: Precondition of minHeadway(
+               "stop1","stop3",({},{(("stop2","stop3"),2,2,2),
+               (("stop1","stop2"),1,1,1)})) not satisfied
+val it = () : unit
+[findMinDTOK] true
+val it = () : unit
+[findMinDTFail] hd applied to empty set
+val it = () : unit
+[capacityConnectionPreFail] NET.rsl:100:7: Precondition of capacity(
+               "stop1","stop3",({},{(("stop2","stop3"),2,2,2),
+               (("stop1","stop2"),1,1,1)})) not satisfied
+val it = () : unit
+[findCapacityConnectionOK] true
+val it = () : unit
+[findCapacityConnectionFail] hd applied to empty set
+val it = () : unit
+[areEnoughStops_1Stop] true
+val it = () : unit
+[areEnoughStops_2Stop] true
+val it = () : unit
+[areEnoughConnections_0Con] true
+val it = () : unit
+[areEnoughConnections_1Con] true
+val it = () : unit
+[getConnectedStopsBasic] true
+val it = () : unit
+[getConnectedStopsExplored] true
+val it = () : unit
+[getConnectedStopsComplex] true
+val it = () : unit
+[isNetFCBasic] true
+val it = () : unit
+[isNetFCNetSet] true
+val it = () : unit
+[isNetFCHyperConnected] true
+val it = () : unit
+[isNetFCHyperConnectedFail] true
+val it = () : unit
+[isWellformedIntegrated] true
+val it = () : unit
+[isInStopPairPass] true
+val it = () : unit
+[isInStopPairFail] true
+val it = () : unit
+[idEqualsPass] true
+val it = () : unit
+[idEqualsFail] true
+val it = () : unit
+[conSetMatchStopSetPass] true
+val it = () : unit
+[conSetMatchStopSetFail] true
+val it = () : unit
+[stopIdIsInStopIdPairOK] true
+val it = () : unit
+[stopIdIsInStopIdPairFail] true
+val it = () : unit
+[checkIsUniqueStopIdOK] true
+val it = () : unit
+[checkIsUniqueStopIdFail] true
+val it = () : unit
+[checkIsUniqueStopIdEmpty] true
+val it = () : unit
+[checkIsOneConnectionOK] true
+val it = () : unit
+[checkIsOneConnectionFail] true
+val it = () : unit
+[checkIsConnectedToOtherOK] true
+val it = () : unit
+[checkIsConnectedToOtherFail] true
+val it = () : unit
+[checkIsValidDTOK] true
+val it = () : unit
+[checkIsValidDTFail] true
+val it = () : unit
+[checkIsValidHWOK] true
+val it = () : unit
+[checkIsValidHWFail] true
+val it = () : unit
+[checkIsValidCapacityStopOK] true
+val it = () : unit
+[checkIsValidCapacityStopFail] true
+val it = () : unit
+[checkIsValidCapacityConnectionOK] true
+val it = () : unit
+[checkIsValidCapacityConnectionFail] true
+val it = () : unit
+6 error(s)
+val it = () : unit
+Unexecuted expressions in NET.rsl
+val it = () : unit
+val it = () : unit
+val it = () : unit
+- 

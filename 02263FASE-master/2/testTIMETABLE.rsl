@@ -1,0 +1,614 @@
+TIMETABLE
+
+scheme testTIMETABLE = 
+extend TIMETABLE with
+class
+
+ value
+   tT1 : TimeTable = [tId1 +> p1],
+   tT2 : TimeTable = [tId2 +> p2],
+   tT3 : TimeTable = [tId1 +> p3],
+   tT4 : TimeTable = [tIdFAIL +> p1],
+   tT5 : TimeTable = [tId1 +> p4],
+   tT6 : TimeTable = [tId1 +> p6],
+   tT7 : TimeTable = [tId1 +> p7, tId2 +> p8],
+
+   tT9 : TimeTable = [tId1 +> p1, tId2 +> p2,
+                      tId3 +> p9, tId4 +> p10],
+
+   p1 : Plan-list = <.A1,B1,C1,B2,A2.>,
+   p2 : Plan-list = <.D1,B3,A3,B4,D2.>,
+   p3 : Plan-list = <.A1,B1,AT1.>,
+   p4 : Plan-list = <.A1,B1,DP1.>,
+   p5 : Plan-list = <.A1,B1,C1,C1,A2.>,
+   p6 : Plan-list = <.A1,B1.>,
+   p7 : Plan-list = <.A1,B1,C1.>,
+   p8 : Plan-list = <.D1,B3,A3.>,
+   p9 : Plan-list = <.A4,B5,C2,B6,A5.>,
+   p10 : Plan-list = <.A6,B7,C3,B8,A7.>,   
+   
+   -- reverse plan lists
+   p1Rev : Plan-list = <.A2,B2,C1,B1,A1.>,
+   --
+
+   -- overlapping plan lists
+   op1 : Plan-list = <.O1, O2, O3.>,   
+   --
+   -- "A", 0, 1
+   -- "B", 12, 14
+   -- "C", 28, 32
+   -- "D", 0, 2
+   -- "B", 11, 13
+   -- "A", 28, 32
+
+   tId1 : TramId = "tram1",
+   tId2 : TramId = "tram2",
+   tId3 : TramId = "tram3",   
+   tId4 : TramId = "tram4",
+   tId5 : TramId = "tram5",    
+   tIdFAIL : TramId = "",
+
+   A1 : Plan = ("A",0,1),
+   B1 : Plan = ("B",12,14),
+   C1 : Plan = ("C",28,32),
+   B2 : Plan = ("B",46,48),
+   A2 : Plan = ("A",59,60),
+
+   -- Used to check isValidTimes
+   AT1 : Plan = ("AT",2,1),
+   DP1 : Plan = ("DP",0,0),
+   --   
+
+   D1 : Plan = ("D",0,2),
+   B3 : Plan = ("B",11,13),
+   A3 : Plan = ("A",28,32),
+   B4 : Plan = ("B",47,50),
+   D2 : Plan = ("D",58,60),
+
+   tT_WF : TimeTable =  [tId1 +> p1, tId2 +> p2],
+   SS_WF : Stop-set = {("A", 2), ("B", 6), ("C", 2), ("D", 2)},
+   CS_WF : Connection-set = { (("A", "B"), 1, 1, 10),
+                              (("B", "C"), 2, 3, 12),
+                              (("B", "D"), 2, 2, 7)
+                            },
+   A4 : Plan = ("A",1,5),
+   B5 : Plan = ("B",15,17),
+   C2 : Plan = ("C",30,34),
+   B6 : Plan = ("B",46,49),
+   A5 : Plan = ("A",56,63),
+
+   A6 : Plan = ("A",0,7),
+   B7 : Plan = ("B",19,29),
+   C3 : Plan = ("C",45,46),
+   B8 : Plan = ("B",60,62),
+   A7 : Plan = ("A",70,80),
+
+   -- overlapping filtered plans 
+   O1 : Plan = ("A",5,10),
+   O2 : Plan = ("A",0,5),
+   O3 : Plan = ("A",5,7),
+   --
+
+   -- plan-list sets
+   PLS1 : (Plan-list)-set = rng tT9, --{<.A1,B1,C1.>, <.B2,A2.>, <.C1,A1,B2.>},
+   --
+
+   -- delimited plan-list
+   DPL1 : Plan-list = combineDelimitedPLS(PLS1),
+   --
+
+   -- filtered planPair-set
+   
+     -- this set returns {(B4, D2)}
+   FPPSOne : PlanPair-set = filterByStopIdPair(("B","D"), DPL1,
+                                                    ("",0,0), {}),
+                                                    
+     -- this set returns {(A1,B1), (A3, B4), (A4, B5), (A6, B7)}
+   FPPSMulti : PlanPair-set = filterByStopIdPair(("A","B"), DPL1,
+                                                    ("",0,0), {}),
+   --
+
+
+   -- cross-checks
+   SSCapB1 : Stop-set = {("A", 1), ("B", 1), ("C", 1), ("D", 1)},
+   SSCapB2 : Stop-set = {("A", 1), ("B", 2), ("C", 1), ("D", 1)},
+   
+   SS_OK : Stop-set = {("A", 3), ("B", 3), ("C", 2), ("D", 1)},
+   SS_FAIL : Stop-set = {("A", 3), ("B", 2), ("C", 2), ("D", 1)},
+   
+   CS_OK : Connection-set = { ( ("A","B"), 2, 3, 10),
+                              ( ("B","C"), 3, 3, 7),
+                              ( ("C","D"), 1, 1, 12) },
+
+   CS_FW_FAIL : Connection-set = { ( ("A","B"), 2, 2, 10),
+                                   ( ("B","C"), 3, 3, 7),
+                                   ( ("C","D"), 1, 1, 12) },
+   
+   CS_BW_FAIL : Connection-set = { ( ("A","B"), 2, 3, 10),
+                                   ( ("B","C"), 3, 2, 7),
+                                   ( ("C","D"), 1, 1, 12) }
+   --
+ test_case
+
+--##############
+--# generators #
+--##############
+
+   [emptyTable] empty = [],
+
+   [addTram] addTram (tId1,empty) = ["tram1" +> <..>],
+
+   [addStop] addStop (tId1, "E", 1, 2, tT1) = ["tram1" +> 
+   <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),("A",59,60),("E",1,2).>],
+
+   [checkIsIn] isIn (tId1, tT1) = true,
+
+   [checkNotIsIn] isIn (tId2, tT1) = false,
+
+   -- it succeeds as p1 has no contiguous plans with the same stopId
+   [isContStopIdEqualOK] isContStopIdEqual(tl p1, A1) = true,
+   -- it fails since hd p1 has stopId = "A" = A1.stopId
+   [isContStopIdEqualFail] isContStopIdEqual(p1, A1) = false,
+
+--#######################
+--# auxiliary functions #
+--#######################
+
+   -- expected a combination of list set in a pseudo-random order,
+   -- alike: <.("C",28,32),("A",0,1),("A",59,60),("B",12,14),("B",46,48).>
+   [combinePLS] combinePLS(PLS1, <..>),
+
+   -- found as p1 contains A1,A2 in this order (p1 = <.A1,B1,C1,B2,A2.>)
+   [filterByStopIdFound] filterByStopId("A", p1, <..>) = <.A1,A2.>,
+   -- not found as p1 does not contain a plan with stopId "E"
+   -- (p1 = <.A1,B1,C1,B2,A2.>)   
+   [filterByStopIdNotFound] filterByStopId("E", p1, <..>) = <..>,
+
+   -- checking that findMinAT picks the right min even if
+   -- in the end of the input list
+   [findMinATEnd] findMinAT(p1Rev, 24*60) = 0,
+   [findMinATSingle] findMinAT(<.A1,A1.>, 24*60) = 0,
+   
+   -- it finds the DT of A2 = ("A",59,60)
+   [findMaxDTEnd] findMaxDT(p1, -1) = 60,
+   -- A1 = ("A",0,1)
+   [findMaxDTSingle] findMaxDT(<.A1,A1.>, -1) = 1,
+
+   -- at time 12 only "tram1" is at stop "B", according to p1
+   [sOverlapsInTimeUnitNotOverlapping]
+                    stopOverlapsInTimeUnit(12, p1, 0) = 1,
+                    
+   -- op1 = <.O1, O2, O3.> O1 = ("A",5,10), O2 = ("A",0,5), O3 = ("A",5,7)
+   -- at time 5 there would be 3 trams at stop "A", according to op1
+   [sOverlapsInTimeUnitOverlappingEqual]
+                    stopOverlapsInTimeUnit(5, op1, 0) = 3,
+   -- at time 11 there would be 0 trams at stop "A", according to op1
+   [sOverlapsInTimeUnitOverlappingNone]
+                    stopOverlapsInTimeUnit(11, op1, 0) = 0,   
+
+   [inEqTimeRangeEqualBounds] inEqTimeRange(1, (1,1)) = true,
+   [inEqTimeRangeTrue] inEqTimeRange(1, (0,1)) = true,
+   [inEqTimeRangeFalse] inEqTimeRange(2, (0,1)) = false,
+
+   -- {5} is the time-set range spanning from 5 to 5
+   [genTimeSetInRangeOneElem] timeSetInRange((5,5), 5, {}) = {5},
+   -- {0,1,2,3} is the time-set range spanning from 0 to 3
+   [genTimeSetInRangeMoreElems] timeSetInRange((0,3), 0, {}) = {0,1,2,3},
+
+
+   -- op1 = <.O1, O2, O3.> O1 = ("A",5,10), O2 = ("A",0,5), O3 = ("A",5,7)
+   -- false as in time range (0,0) only O2 is on stop "A" and stopCap = 1
+   [isStopCongestedFail] isStopCongested((0,0), 1, op1) = false,
+   -- true as in time range (0,10) O1, O2 and O3 are on stop "A"
+   -- and stopCap= 2
+   [isStopCongestedOK] isStopCongested((0,10), 2, op1) = true,
+   -- false as in time range (0,10) O1, O2 and O3 are on stop "A"
+   -- but stopCap = 3
+   [isStopCongestedBound] isStopCongested((0,10), 3, op1) = false,
+
+   --[noContStopIdEqualFail] noContStopIdEqual([tId1 +> p5]) = false,
+
+
+
+-- expected output similar to: <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),
+-- ("A",59,60),("###",0,0),("A",0,7),("B",19,29),("C",45,46),("B",60,62),
+-- ("A",70,80),("###",0,0),("D",0,2),("B",11,13),("A",28,32),("B",47,50),("D",58,60),
+-- ("###",0,0),("A",1,5),("B",15,17),("C",30,34),("B",46,49),("A",56,63).>
+   [buildDelimitedPLS] buildDelimitedPLS(PLS1, false, <..>),
+
+-- testing wrapper function
+-- expected output similar to: <.("A",0,1),("B",12,14),("C",28,32),("B",46,48),
+-- ("A",59,60),("###",0,0),("A",0,7),("B",19,29),("C",45,46),("B",60,62),("A",70,80),
+-- ("###",0,0),("D",0,2),("B",11,13),("A",28,32),("B",47,50),("D",58,60),("###",0,0),
+-- ("A",1,5),("B",15,17),("C",30,34),("B",46,49),("A",56,63).>
+   [combineDelimitedPLS] combineDelimitedPLS(PLS1),
+
+
+   -- DPL1 = <. <.A1,B1,C1,B2,A2.>,("###",0,0),
+   --           <.D1,B3,A3,B4,D2.>,("###",0,0),
+   --           <.A4,B5,C2,B6,A5.>,("###",0,0),
+   --           <.A6,B7,C3,B8,A7.>             .>
+   -- (B4,D2) is the only PlanPair with stopIdPair = ("B","D") in DPL1
+   [filterByStopIdPairOneFound] filterByStopIdPair(("B","D"), DPL1,
+                                          ("",0,0), {}) = {(B4, D2)},
+   -- there are multiple PlanPairs with stopIdPair = ("A","B") in DPL1
+   [filterByStopIdPairMultiFound] filterByStopIdPair(("A","B"), DPL1,
+                                                     ("",0,0), {}) =
+                                {(A1,B1), (A3, B4), (A4, B5), (A6, B7)},
+
+   -- there are no PlanPairs with stopIdPair = ("A","A") in DPL1
+   [filterByStopIdPairNotFound] filterByStopIdPair(("A","A"), DPL1,
+                                                   ("",0,0), {}) = {},
+
+   -- trivial case
+   [findPlanPairMinDTNone] findPlanPairMinDT({}, 24*60) = 24*60,
+   -- FPPSOne =
+   --      filterByStopIdPair(("B","D"), DPL1, ("",0,0), {}) = 
+   --                     {(B4, D2)} = { (("B",47,50), ("D",58,60)) }
+   -- Only one pair in FPPSOne then the min(DT) of origin plans is 50
+   [findPlanPairMinDTOnePair] findPlanPairMinDT(FPPSOne, 24*60) = 50,
+   -- FPPSMulti =
+   --      filterByStopIdPair(("B","D"), DPL1, ("",0,0), {}) = 
+   --                     {(A1,B1), (A3, B4), (A4, B5), (A6, B7)}
+   -- Among the origin plans (A1,A3,...) the min(DT) is 1
+   [findPlanPairMinDTMultiPairs] findPlanPairMinDT(FPPSMulti, 24*60) = 1,
+
+   -- trivial case
+   [findPlanPairMaxATNone] findPlanPairMaxAT({}, 0) = 0,
+   -- FPPSOne =
+   --      filterByStopIdPair(("B","D"), DPL1, ("",0,0), {}) = 
+   --                     {(B4, D2)} = { (("B",47,50), ("D",58,60)) }
+   -- Only one pair in FPPSOne then the max(AT) of destination plans is 58
+   [findPlanPairMaxATOnePair] findPlanPairMaxAT(FPPSOne, 0) = 58,
+   -- FPPSMulti =
+   --      filterByStopIdPair(("B","D"), DPL1, ("",0,0), {}) = 
+   --                     {(A1,B1), (A3, B4), (A4, B5), (A6, B7)}
+   -- Among the destination plans (B1,B4,...) the max(AT) is 47
+   [findPlanPairMaxATMultiPairs] findPlanPairMaxAT(FPPSMulti, 0) = 47,
+
+   -- trivial no overlaps 
+   [connectionOverlapsInTimeUnitNone]
+                           connectionOverlapsInTimeUnit(0, {}, 0) = 0,
+   -- FPPSOne =
+   --      filterByStopIdPair(("B","D"), DPL1, ("",0,0), {}) = 
+   --                     {(B4, D2)} = { (("B",47,50), ("D",58,60)) }
+   -- Only one tram is on connection B -> D time 50, according to FPPSOne
+   [connectionOverlapsInTimeUnitOnePair]
+                           connectionOverlapsInTimeUnit(50, FPPSOne, 0) = 1,
+
+   -- FPPSMulti =
+   --      filterByStopIdPair(("B","D"), DPL1, ("",0,0), {}) = 
+   --                     {(A1,B1), (A3, B4), (A4, B5), (A6, B7)}
+   -- { (("A",0,1), ("B",12,14)), (("A",28,32),("B",47,50)),
+   --   (("A",1,5), ("B",15,17)), (("A",0,7),("B",19,29)) }
+   -- At time 12, 3 trams are on connection A -> B
+   -- ( {(A1,B1), (A4, B5), (A6, B7)} ), according to FPPSMulti
+   [connectionOverlapsInTimeUnitUpperLimit]
+                connectionOverlapsInTimeUnit(12, FPPSMulti, 0) = 3,
+   -- FPPSMulti =
+   --      filterByStopIdPair(("B","D"), DPL1, ("",0,0), {}) = 
+   --                     {(A1,B1), (A3, B4), (A4, B5), (A6, B7)}
+   -- { (("A",0,1), ("B",12,14)), (("A",28,32),("B",47,50)),
+   --   (("A",1,5), ("B",15,17)), (("A",0,7),("B",19,29)) }
+   -- At time 1, 1 tram is on connection A -> B ( {(A1,B1)} ),
+   -- according to FPPSMulti
+   [connectionOverlapsInTimeUnitLowerLimit]
+                connectionOverlapsInTimeUnit(1, FPPSMulti, 0) = 1,
+
+   -- In interval 12 to 15, at most 3 trams at a time are on
+   -- connection A -> B
+   --   t12 : {(A1,B1),(A4,B5),(A6,B7)}
+   --   t13 : {(A4,B5),(A6,B7)}
+   --   t14 : {(A4,B5),(A6,B7)}
+   --   t15 : {(A4,B5),(A6,B7)}      
+   [isConnectionCongestedTrue]
+                isConnectionCongested((12,15), 2, FPPSMulti) = true,
+   [isConnectionCongestedFalse]
+                isConnectionCongested((13,15), 2, FPPSMulti) = false,
+
+   /* Tests that a given plan list is listed in chronological order */
+   [isPlansChronologicalOrderOK] isPlansChronologicalOrder(
+				 ("A", 0, 1), 
+				 <.
+				   ("B", 2, 3), 
+				   ("C", 4, 5), 
+				   ("D", 6, 7) 
+				 .>
+				 ) = true,
+   /* Makes sure that non-chronological ordered planlists is caught. 
+      The error cought, lies in the last plan in the plan-list */
+   [isPlansChronologicalOrderFail] isPlansChronologicalOrder(
+				 ("A", 0, 1), 
+				 <.
+				   ("B", 2, 3), 
+				   ("C", 8, 9), 
+				   ("D", 6, 7) 
+				 .>
+				 ) = false,
+         
+--   [areStopsInTimeTableTrue] areStopsInTimeTable(
+--                             tl tT_WF(tId1), hd tT_WF(tId1), "A") = true,
+
+   [areStopsInPlanListDirectlyConnectedOK]
+   areStopsInPlanListDirectlyConnected(
+     ("A", 0, 1),
+     <. ("D", 2, 3), 
+     ("E", 8, 9), 
+     ("C", 10, 17) .>,
+     (
+        {("A", 1), ("B", 2), ("C", 1), ("D", 1), ("E", 1)},
+
+	 { ( ("A","D"), 2, 3, 10),
+	 ( ("D","E"), 3, 2, 7),
+         ( ("E","B"), 1, 4, 12), 
+	 (("C", "E"), 1, 1, 1), 
+	 (("C", "B"), 1, 1, 1)} 
+     )
+   ) = true,  
+   [areStopsInPlanListDirectlyConnectedFail]
+   areStopsInPlanListDirectlyConnected(
+     ("A", 0, 1),
+     <. ("D", 2, 3), 
+     ("E", 8, 9), 
+     ("C", 10, 17) .>,
+     (
+        {("A", 1), ("B", 2), ("C", 1), ("D", 1), ("E", 1)},
+
+	 { ( ("A","D"), 2, 3, 10),
+	 ( ("D","E"), 3, 2, 7),
+         ( ("E","B"), 1, 4, 12), 
+	 (("C", "B"), 1, 1, 1)} 
+     )
+   ) = false,
+
+--##############################
+--# well-formedness predicates #
+--##############################
+
+   -- #######
+   -- # Max #
+   -- #######
+   -- 1.
+   -- it succeeds because there are no duplicates
+   [noContStopIdEqualOK] noContStopIdEqual(tT9) = true,
+   -- it fails because p5 contains two equal and contiguous stopIds
+   [noContStopIdEqualFail] noContStopIdEqual(tT9 !! [tId1 +> p5]) = false,
+
+   -- 6.
+   -- it fails because B has capacity 2, but there is a time when
+   -- 3 trams are at the stop
+   [areStopsCapEverExceededTrue]
+       isAnyStopCapEverExceeded(SS_FAIL, tT9) = true,
+   -- the condition is satisfied as tT9 and CS_OK are wf
+   [areStopsCapEverExceededFalse]
+       isAnyStopCapEverExceeded(SS_OK, tT9) = false,
+   -- the condition is satisfied as tT9 and CS_OK are wf       
+   [isAnyConCapEverExceededFalse] isAnyConCapEverExceeded(CS_OK, tT9)
+                                                             = false,
+   -- 7.
+   -- It fails because C->B capacity is 2
+   [isAnyConCapEverExceededBackwardTrue] isAnyConCapEverExceeded
+                                         (CS_BW_FAIL, tT9) = true,
+   -- It fails because A->B capacity is 2
+   [isAnyConCapEverExceededForwardTrue] isAnyConCapEverExceeded
+                                         (CS_FW_FAIL, tT9) = true,
+   -- ########
+   -- # Mads #
+   -- ########
+   -- -2. testing that Arrival Time is valid. 
+   -- tT1 is test data from project description
+   -- tT3 contains a plan where AT > DT
+   [checkIsValidArrivalTimeOK] isValidArrivalTime (tT1) = true,
+   [checkIsValidArrivalTimeFail] isValidArrivalTime (tT3) = false,
+
+   -- -1. testing that Departure Time is valid.
+   -- tT1 is test data from project description
+   -- tT5 contains a plan where AT = DT
+   [checkIsValidDepartureTimeOK] isValidDepartureTime (tT1) = true,
+   [checkIsValidDepartureTimeFail] isValidDepartureTime (tT5) = false,
+
+   -- 0. testing that id of tram is not empty
+   -- tT1 is test data from project description
+   -- tT4 contains an empty tram name
+   [checkIsValidTramOK] isValidTram (tT1) = true,
+   [checkIsValidTramFail] isValidTram (tT4) = false,
+
+   -- 4. testing that all stopIds in TimeTable occurs in stops in the net. 
+   -- tT6 contains the plans with stopId "A" and "B"
+   -- for the last test case "E" is as a plan to the TimeTable and will fail. 
+   [allStopsInTimeTableOK] allStopsInTimeTable(
+			   ({("A",2),("B",3)},
+			   {(("A","B"),1,2,3)}),
+			   tT6) = true,
+   [allStopsInTimeTableFail] allStopsInTimeTable(
+			     ({("A",2),("B",3)},
+			     {(("A","B"),1,2,3)}),
+			     (addStop(tId1,"E",1,2,tT6))) = false,
+
+   -- 5. testing that plans in the TimeTable are not violating the minimum driving time.
+   -- TODO: FIX MADS!
+   [checkMinDTOK] checkMinDT(
+		  ({("A",2),("B",3)},
+		  {(("A","B"),1,2,10)}),
+		  tT6) = true,
+   [checkMinDTFail] checkMinDT(
+		    ({("A",2),("B",3)},
+		    {(("A","B"),1,2,12)}),
+		    tT6) = false,
+
+   -- 9. testing that arrival times are not overlapping if the capacity of the 
+   -- stop does not allow it.
+   -- tT7 consists of two TimeTables where the stopId "B" is present in both of 
+   -- them with an overlapping arrival time.
+   [checkAreTimeTablesCollidingOK] areTimeTablesColliding(
+				 ({("A",2),("B",3),("C",2)},
+				 {(("A","B"),1,2,3),(("B","C"),2,3,4)}),
+				 tT7) = true,
+   [checkAreTimeTablesCollidingFail] areTimeTablesColliding(
+				 ({("A",2),("B",1),("C",2)},
+				 {(("A","B"),1,2,3),(("B","C"),2,3,4)}),
+				 tT7) = false,
+ 
+   -- ########
+   -- # Fred #
+   -- ########
+   -- 2.
+   /* Testing that the plans for any given tram is in chronologicla order */
+   [isTimeTablesChronologicalOrderOK] isTimeTablesChronologicalOrder(
+				      [tId1 +> 
+				      <.("A", 0, 1), 
+				      ("B", 2, 3), 
+				      ("C", 8, 9), 
+				      ("D", 10, 17) .>] union 
+				      [tId2 +> 
+				      <.("D", 0, 3), 
+					("C", 5, 6), 
+					("B", 7, 9), 
+					("A", 10, 12) .>] union
+				      [tId3 +> 
+				      <.("B", 0, 3), 
+				      ("D", 4, 6), 
+				      ("E", 8, 9).>]
+				      ) = true,
+
+   /* Testing that if a plan in one of the tram plans is not
+   chronological, the function will return false. error lies in tram2
+   plan 2*/ 
+   [isTimeTablesChronologicalOrderFail] isTimeTablesChronologicalOrder(
+				      [tId1 +> 
+				      <.("A", 0, 1), 
+				      ("B", 2, 3), 
+				      ("C", 8, 9), 
+				      ("D", 10, 17) .>] union 
+				      [tId2 +> 
+				      <.("D", 6, 7), 
+				("C", 5, 6), 
+					("B", 7, 9), 
+					("A", 10, 12) .>] union
+				      [tId3 +> 
+				      <.("B", 0, 3), 
+				      ("D", 4, 6), 
+				      ("E", 8, 9).>]
+				      ) = false, 
+   
+   -- 3.
+   /* Testing that all trams are only traveling from stop 's1' to 's2'
+   if they are directly connected as specified in the given Net*/
+   [areStopsInTimeTableDirectlyConnectedOK]
+   areStopsInTimeTableDirectlyConnected(
+     (
+        {("A", 1), ("B", 2), ("C", 1), ("D", 1), ("E", 1)},
+
+	 { ( ("A","D"), 2, 3, 10),
+	 ( ("D","E"), 3, 2, 7),
+         ( ("E","B"), 1, 4, 12), 
+	 (("C", "E"), 1, 1, 1), 
+	 (("C", "B"), 1, 1, 1)} 
+     ), 
+     [tId1 +> 
+     <.("A", 0, 1), 
+     ("D", 2, 3), 
+      ("E", 8, 9), 
+      ("C", 10, 17) .>] union 
+      [tId2 +> 
+      <.("C", 6, 7), 
+	("B", 5, 6), 
+	("E", 7, 9), 
+	("C", 10, 12) .>] union
+      [tId3 +> 
+       <.("E", 0, 3), 
+      ("C", 4, 6), 
+      ("B", 8, 9).>]
+   ) = true,
+   
+   /* This test is failing since stop 'C' and 'A' are not direclty
+   conneted. The plan for tram 3 is therefore not wellformed*/
+   [areStopsInTimeTableDirectlyConnectedFail]
+   areStopsInTimeTableDirectlyConnected(
+     (
+        {("A", 1), ("B", 2), ("C", 1), ("D", 1), ("E", 1)},
+
+	 { ( ("A","D"), 2, 3, 10),
+	 ( ("D","E"), 3, 2, 7),
+         ( ("E","B"), 1, 4, 12), 
+	 (("C", "E"), 1, 1, 1), 
+	 (("C", "B"), 1, 1, 1)} 
+     ), 
+     [tId1 +> 
+     <.("A", 0, 1), 
+     ("D", 2, 3), 
+      ("E", 8, 9), 
+      ("C", 10, 17) .>] union 
+      [tId2 +> 
+      <.("C", 6, 7), 
+	("B", 5, 6), 
+	("E", 7, 9), 
+	("C", 10, 12) .>] union
+      [tId3 +> 
+      <.("E", 0, 3), 
+      ("C", 4, 6), 
+      ("A", 8, 9).>]
+   ) = false,   
+
+   -- 8.
+   /* Testing that the PlanPair-set provided is complying with
+   the given headway */
+   [isHWInConCompliedOK] isHWInConComplied(
+     2, 
+     {
+	(("A", 1, 2), ("B", 5, 6)), 
+	(("A", 2, 4), ("B", 9, 10)), 
+	(("A", 5, 9), ("B", 11, 12))
+     }
+   ) = true,
+
+   /* This fails since difference in arrival time in "B" between 
+   2nd (8) and 3rd (9) element is 1 where it needs to be atleast 2 */
+   [isHWInConCompliedFail] isHWInConComplied(
+     2, 
+     {
+	(("A", 1, 2), ("B", 6, 8)), 
+	(("A", 3, 4), ("B", 8, 10)), 
+	(("A", 7, 8), ("B", 9, 12)) 
+     }
+   ) = false,
+
+   /* Testing that all Plans are complying the given headway
+   for all the given connections */
+   [isAllConHWCompliedOK] isAllConHWComplied(
+   { 
+     ( ("A","D"), 3, 1, 5),
+     ( ("D","E"), 5, 1, 5)
+   }, 
+   [tId1 +> 
+     <.("A", 0, 1), 
+       ("D", 5, 9), 
+       ("E", 15, 20) .>,
+   tId2 +> 
+      <.("A", 1, 4), 
+	("D", 8, 14), 
+	("E", 20, 21) .>]
+   ) = true, 
+
+   /* This fails arrival time for "D" is 4 and 6 (difference of 2), 
+   but min headway is defined as 3*/
+   [isAllConHWCompliedFail] isAllConHWComplied(
+   { 
+     ( ("A","D"), 3, 1, 5),
+     ( ("D","E"), 5, 1, 5)
+   }, 
+   [tId1 +> 
+     <.("A", 0, 1), 
+       ("D", 4, 9), 
+       ("E", 15, 21) .>,
+   tId2 +> 
+      <.("A", 0, 4), 
+	("D", 6, 14), 
+	("E", 20, 22) .>]
+   ) = false, 
+
+   [isWellformedOKBasic] isWellformed(tT_WF, (SS_WF, CS_WF)) = true
+--   [isWellformedOK] isWellformed(tT9, (SS_OK, CS_OK)) = true
+
+
+end

@@ -1,0 +1,11 @@
+GroupingBasics
+
+scheme GroupingReq  =
+extend GroupingBasics with 
+class
+  value /* requirement spec */
+    divide : Person-set >< Relation -~-> Grouping
+    divide(ps, r) as gs 
+    post isCorrectGrouping(gs,ps,r)
+    pre isFriendsRelation(r)
+ end
